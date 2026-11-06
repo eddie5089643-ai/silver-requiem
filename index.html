@@ -977,6 +977,7 @@ function blink(b,x,y){part(b.x,b.y-45,26,'#000000',2.5,30,2);part(b.x,b.y-45,10,
 function dmgBoss(d,x,y,big){
   const b=boss;if(!b||b.dead)return;
   if(b.inv>0||b.trans>0){pop(x,y-6,'—','#777');return;}
+  if(b.mstepOn&&!b.msD&&b.broken<=0&&b.hold<=0&&Math.random()<.6){const dx=pc().x-b.x;b.msD={k:0,dir:Math.abs(dx)<30?(Math.random()<.5?-1:1):Math.sign(dx),slash:false};b.sw=null;SFX.dash();addShake(1.5);pop(x,y-6,'MISS','#cfe0ff');return;}
   b.hp-=d;b.hurtF=6;b.ghostHp=Math.max(b.ghostHp,b.hp+d);
   pop(x+rnd(-6,6),y-6,d,big?'#ffd166':'#ffffff',big);
   if(b.hp<=0){b.hp=0;if(b.kind==='mirror'&&b.phase>=3&&!b.lastDone){startLastStand(b);return;}bossDie(b);}
@@ -1070,7 +1071,7 @@ function runLastStand(b){const t=b.lt++;b.fly=true;b.flying=true;
   b.lns=b.lns.filter(l=>!l.done);}
 
 function enterPhase(b,ph){
-  b.phase=ph;b.ai=0;b.t=0;b.trans=140;b.weapon='katana';b.twins=null;b.dancers=null;b.storm=null;b.inv=140;b.dashing=false;b.hidden=false;b.sheath=false;b.float=1;b.hold=0;
+  b.phase=ph;b.ai=0;b.t=0;b.trans=140;b.mstepOn=false;b.msD=null;b.weapon='katana';b.twins=null;b.dancers=null;b.storm=null;b.inv=140;b.dashing=false;b.hidden=false;b.sheath=false;b.float=1;b.hold=0;
   for(const q of bullets)part(q.x,q.y,2,q.col,1,20);bullets=[];lasers=[];strikes=[];aoes=[];
   flash=.9;addShake(12);SFX.roar();setMusic(b.song,ph+(b.off||0));if(b.hard&&ph===3){fx.push({type:'rift',x:b.x,y:b.y-20,a:0,life:60,max:60});fx.push({type:'rift',x:b.x,y:b.y-20,a:Math.PI/2,life:60,max:60});}
 }
@@ -1149,18 +1150,26 @@ function makeMirror(){
         if(q.last&&k===q.w+Math.round(q.cd.dur*.45)){const a=toW(b,q.aim);shot(b.x,b.y-24,a,6,{shape:'qi',r:9,dmg:40,life:90,col:'#b8a0ff'});SFX.qi();}}
     }
     if(t>b.end){b.sw=null;return true;}return false;};
-  // 鏡影閃步（第三階段）：像玩家一樣朝玩家方向左右閃避，閃到身邊立刻斬擊，連續4次（最後一刀可振）
+  // 鏡影閃步（第三階段）：8秒內走向玩家；被攻擊時60%閃避（朝玩家側閃，玩家在正上下方則隨機左右）；閃到玩家身旁會亮黃光揮刀（可振）
   const mstep=(b,t)=>{
-    const per=Math.round(36/Math.sqrt(D.spd)),n=4,i=Math.floor(t/per),k=t%per;
-    if(i>=n){b.sw=null;b.inv=0;return true;}
-    if(t===0){b.fly=false;b.sheathed=false;b.weapon='katana';}
-    if(k===0){b.face=Math.sign(P.x-b.x)||1;b.ddir=b.face;b.crouch=1;b.sw=null;if(i===n-1)glint(b,true);}
-    if(k>=4&&k<16){const dx=pc().x-b.x;if(Math.abs(dx)>34)b.x=clamp(b.x+b.ddir*Math.min(13,Math.abs(dx)-30),30,WW-30);b.inv=Math.max(b.inv,2);if(k%2===0)mGhost(b,'#cfe0ff');if(k===4){SFX.dash();addShake(1.5);}}
-    mPhys(b);
-    if(k===16){b.face=Math.sign(P.x-b.x)||b.face;b.aimS=aimL(b);const cd=COMBO[i===n-1?2:i%2];b.sw={cd};b.cdS=cd;
-      const R=(44+cd.ext)*PS*1.4+18;strike({kind:'sec',b,R,a0:b.aimS+cd.a0,a1:b.aimS+cd.a1,life:cd.dur,parry:i===n-1,dmg:i===n-1?50:38});SFX.swing(i===n-1);}
-    if(k>=16&&b.cdS&&k<16+b.cdS.dur){const kk=(k-16+1)/b.cdS.dur;b.swLA=lerp(b.aimS+b.cdS.a0,b.aimS+b.cdS.a1,ease(kk));b.bladeL=58+b.cdS.ext*1.3*Math.sin(Math.PI*kk);}
+    if(t===0){b.fly=false;b.flying=false;b.sheathed=false;b.weapon='katana';b.sw=null;b.msD=null;b.mstepOn=true;b.msT=0;}
+    const d=b.msD;
+    if(d){d.k++;
+      if(d.k<=12){b.x=clamp(b.x+d.dir*11,30,WW-30);b.inv=Math.max(b.inv,2);if(d.k%2===0)mGhost(b,'#cfe0ff');b.face=Math.sign(P.x-b.x)||d.dir;mPhys(b);
+        if(d.k===12){const c=pc();if(Math.abs(c.x-b.x)<70&&Math.abs(c.y-(b.y-24))<70){d.slash=true;d.s=0;b.face=Math.sign(c.x-b.x)||b.face;glint(b,true);}else{b.msD=null;}}
+        return false;}
+      if(d.slash){d.s++;mPhys(b);b.face=Math.sign(P.x-b.x)||b.face;
+        if(d.s===14){b.aimS=aimL(b);const cd=COMBO[2];b.cdS=cd;b.sw={cd};const R=(44+cd.ext)*PS*1.4+18;
+          strike({kind:'sec',b,R,a0:b.aimS+cd.a0,a1:b.aimS+cd.a1,life:cd.dur,parry:true,dmg:48});SFX.swing(true);}
+        if(d.s>=14&&b.cdS&&d.s<14+b.cdS.dur){const kk=(d.s-14+1)/b.cdS.dur;b.swLA=lerp(b.aimS+b.cdS.a0,b.aimS+b.cdS.a1,ease(kk));b.bladeL=58+b.cdS.ext*1.3*Math.sin(Math.PI*kk);}
+        if(d.s>14+(b.cdS?b.cdS.dur:12)+10){b.msD=null;b.sw=null;}
+        return false;}
+      b.msD=null;}
+    // 走向玩家
+    b.msT++;const dx=pc().x-b.x;b.face=Math.sign(dx)||b.face;b.vx=Math.abs(dx)>40?Math.sign(dx)*1.9:0;b.x=clamp(b.x+b.vx,30,WW-30);mPhys(b);b.swLA=lerp(b.swLA,-.6,.1);
+    if(t>=480){b.mstepOn=false;b.vx=0;b.sw=null;return true;}
     return false;};
+  // 衝刺斬
   // 衝刺斬
   const dash=(b,t)=>{
     const n=b.phase>=1?4:3,w=Math.round(22/Math.sqrt(D.spd)),per=w+12+16,k=t%per,i=Math.floor(t/per);
@@ -1170,7 +1179,8 @@ function makeMirror(){
     if(k===w){b.dashing=true;SFX.dash();SFX.swing();b.from={x:b.x,y:b.y};b.stop=false;
       strike({kind:'cap',b,r:20,life:13,parry:true,dmg:42,seg:()=>[b.from.x,b.from.y-24,b.x,b.y-24],onDeflect:()=>{b.stop=true;b.dashing=false;}});}
     if(k>w&&k<=w+12&&!b.stop){b.x=clamp(b.x+Math.cos(b.da)*13,30,WW-30);b.y=clamp(b.y+Math.sin(b.da)*13,40,GROUND);b.swLA=lerp(b.swLA,toLA(b,b.da)+1.2,.3);if(k%2===0)mGhost(b,'#cfe0ff');}
-    if(k===w+12){b.dashing=false;if(b.phase>=1&&!b.stop)spread(b.x,b.y-24,b.da,N(7),1.1,2.6,{shape:'petal',r:3});}
+    if(k===w+12){b.dashing=false;if(b.phase>=1&&!b.stop){b.sw={cd:COMBO[2]};b.fanA=toLA(b,b.da);SFX.swing(true);}}
+    if(b.phase>=1&&!b.stop&&k>w+12&&k<=w+22){const kk=(k-w-12)/10;b.swLA=lerp(b.fanA-1.7,b.fanA+1.5,ease(kk));b.bladeL=64;if(k===w+15)spread(b.x,b.y-24,b.da,N(7),1.1,2.6,{shape:'petal',r:3});}
     if(k>w+12){b.fly=false;mPhys(b);}
     return false;};
   // 飛空劍氣雨＋俯衝
