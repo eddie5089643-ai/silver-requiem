@@ -1440,7 +1440,7 @@ function update(){
   stats.time++;if(introT>0)introT--;
   if(execT>0){execUpdate();stepMisc();return;}
   updPlayer();
-  if(MP.on&&P.dead){P.respawnT=(P.respawnT||900)-1;if(P.respawnT<=0){P.dead=false;P.respawnT=0;P.hp=P.mhp;P.iframes=150;P.x=clamp((boss?boss.x:P.x)+(Math.random()<.5?-260:260),40,WW-40);P.y=GROUND-P.h-160;P.vx=P.vy=0;const c0=pc();ring(c0.x,c0.y,'#ffffff',6,30);part(c0.x,c0.y,30,'#ffffff',3,30);SFX.heal();}}
+  if(MP.on&&P.dead&&!MP.wipeT){P.respawnT=(P.respawnT||900)-1;if(P.respawnT<=0){P.dead=false;P.respawnT=0;P.hp=P.mhp;P.iframes=150;P.x=clamp((boss?boss.x:P.x)+(Math.random()<.5?-260:260),40,WW-40);P.y=GROUND-P.h-160;P.vx=P.vy=0;const c0=pc();ring(c0.x,c0.y,'#ffffff',6,30);part(c0.x,c0.y,30,'#ffffff',3,30);SFX.heal();}}
   if(MP.on&&!MP.host){mpClientBoss();}
   else if(boss&&boss.dormant){updMirror();}
   else if(boss){
@@ -2144,12 +2144,13 @@ function mpClientMsg(d){if(!d)return;
   if(d.t==='snap'){mpApplySnap(d);return;}
   if(d.t==='hurt'){if(P&&!P.dead&&state==='fight')hurt(d.d);return;}
   if(d.t==='exec'){if(P&&!P.dead&&state==='fight'&&boss&&execT<=0)execStart(boss);return;}
+  if(d.t==='wipe'){mpWipeFx();return;}
   if(d.t==='back'){MP.started=false;if(state!=='title')toTitle();mpUI();return;}
   if(d.t==='vs'){for(const v of d.v)MP.vshots.push({x:v[0],y:v[1],vx:v[2],vy:v[3],c:v[4],life:24});return;}}
 function mpLeave(){if(MP.host&&MP.on)mpSendAll({t:'back'});mpCloseAll();mpStatus('');}
 
 // ---------- 開打 ----------
-function mpStartLocal(n){MP.rex=null;MP.aggro={};MP.total={};MP.open=false;MP.fadeDone=false;MP.hitIds=new Set();MP.vshots=[];MP.robj={};MP.lastAi=-1;MP.tgt='h';startFight(0);
+function mpStartLocal(n){MP.rex=null;MP.wipeT=0;MP.allDeadT=0;MP.aggro={};MP.total={};MP.open=false;MP.fadeDone=false;MP.hitIds=new Set();MP.vshots=[];MP.robj={};MP.lastAi=-1;MP.tgt='h';startFight(0);
   P.pal=mpPal(MP.me.slot);P.palSlot=MP.me.slot;P.male=MP.me.male;P.rage=0;
   if(MP.host){const hp=Math.round(5000*(1+1.75*(Math.max(1,n)-1)));boss.mhp=boss.hp=boss.ghostHp=hp;}
   mpUI();}
@@ -2217,7 +2218,16 @@ function mpClientBoss(){const b=boss;if(!b)return;b.anim++;if(b._tx!==undefined)
   if(b.dead&&b.deathT>=580&&state==='fight'){state='win';endT=0;setMusic('title',-1);}}
 
 // ---------- 每幀：收送狀態、遠端玩家 ----------
+// 全員陣亡：5 秒後 Boss 淡出，整場重來
+function mpWipeFx(){if(!boss)return;MP.wipeT=1;bossMusicFade();SFX.peril();}
+function mpWipeStep(){if(!MP.wipeT)return;MP.wipeT++;const b=boss;
+  if(b&&!b.hidden){if(MP.wipeT%2===0){part(b.x+rnd(-10,10),b.y-rnd(0,40),3,'#000000',1.5,40,1);part(b.x+rnd(-10,10),b.y-rnd(0,40),2,'#ffffff',1.2,30,1);}if(MP.wipeT===50){part(b.x,b.y-24,40,'#000000',2.5,50,2);b.hidden=true;b.dancers=null;b.twins=null;b.clones=[];}}
+  strikes=[];bullets=[];aoes=[];lasers=[];
+  if(MP.host&&MP.wipeT>=100){MP.wipeT=0;MP.started=false;mpHostStart();}}
 function mpAfterUpdate(){MP.tick++;
+  if(MP.host&&!MP.wipeT&&boss&&!boss.dead&&!boss.dormant){const all=P.dead&&Object.values(MP.rs).every(s=>s&&s.d);MP.allDeadT=all?(MP.allDeadT||0)+1:0;
+    if(MP.allDeadT>=300){MP.allDeadT=0;mpSendAll({t:'wipe'});mpWipeFx();}}
+  mpWipeStep();
   // 自己射出的子彈 → 讓其他人看到（僅視覺）
   const nv=[];for(const s of pshots){if(!s.__v){s.__v=1;nv.push([r1(s.x),r1(s.y),r1(s.vx),r1(s.vy),MP.me.slot]);}}
   if(nv.length){if(MP.host)mpSendAll({t:'vs',v:nv});else mpSendHost({t:'vs',v:nv});}
@@ -2240,7 +2250,8 @@ function mpDrawRemotes(){if(!MP.on)return;
     g.fillStyle='rgba(0,0,0,.65)';g.fillRect(bx-1,by-1,bw+2,4);g.fillStyle='#ffffff';g.fillRect(bx,by,Math.round(bw*k),2);
     g.fillStyle=MPCSS[o.slot]||'#fff';g.fillRect(bx-4,by-1,2,4);}}
 function mpHUD(){if(!MP.on||state!=='fight'||!P)return;
-  if(P.dead)T('復活倒數 '+Math.ceil((P.respawnT||0)/60),W/2,H/2-20,14,'#ffffff','center',8);
+  if(MP.wipeT)T('全員陣亡',W/2,H/2-20,18,'#ff6070','center',10);
+  else if(P.dead)T('復活倒數 '+Math.ceil((P.respawnT||0)/60),W/2,H/2-20,14,'#ffffff','center',8);
   let y=60;for(const pl of MP.players){const isMe=(MP.host&&pl.id==='h')||pl.id===MP.myId;const s=isMe?null:MP.view[pl.id];
     const hp=isMe?P.hp/P.mhp:(s?s.hp/(s.mh||200):0),dead=isMe?P.dead:(s&&s.d);
     R(W-62,y,6,6,MPCSS[pl.slot]);R(W-52,y+2,40,2,'rgba(255,255,255,.2)');R(W-52,y+2,40*Math.max(0,hp),2,dead?'#555':'#ffffff');
