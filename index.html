@@ -158,7 +158,25 @@ function audioInit(){
   noiseBuf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);
   const nd=noiseBuf.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
   music.nextT=AC.currentTime+.1;if(!music.want)music.want={song:music.song,sec:music.sec};music.bus=null;
+  smpLoad();
 }
+// ---- 真實採樣配樂：music/t0~t5.mp3，切換時淡入淡出交疊 ----
+const SMP={buf:[],cur:null,want:-1,mute:false,FADE:1.6,FILES:['music/t0.mp3','music/t1.mp3','music/t2.mp3','music/t3.mp3','music/t4.mp3','music/t5.mp3']};
+function smpLoad(){if(SMP.loading)return;SMP.loading=true;
+  SMP.FILES.forEach((f,i)=>{fetch(f).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(ab=>AC.decodeAudioData(ab)).then(b=>{SMP.buf[i]=b;}).catch(()=>{});});}
+function smpTrack(){if(music.song==='title')return 0;const m=/^mirror_(\d)$/.exec(music.song);if(!m)return -1;const k=+m[1]+1;if(boss&&boss.dead&&SMP.cur)return SMP.cur.id;return (k===4&&boss&&boss.last)?5:k;}
+function smpFadeOut(c,T){if(!c)return;const g=c.g.gain;g.cancelScheduledValues(AC.currentTime);g.setValueAtTime(g.value,AC.currentTime);g.linearRampToValueAtTime(0,AC.currentTime+T);try{c.src.stop(AC.currentTime+T+.05);}catch(e){}}
+function smpUpdate(){ // 回傳 true 表示由採樣配樂負責播放
+  const id=smpTrack();if(id<0||!SMP.buf[id])return SMP.cur&&SMP.cur.id===id;
+  if(SMP.cur&&SMP.cur.id===id)return true;
+  const now=AC.currentTime,b=SMP.buf[id];let off=0;
+  // 第四階段→最後謝幕：依目前播放時間對齊切換
+  if(SMP.cur&&SMP.cur.id===4&&id===5){const d4=SMP.buf[4].duration,p4=(now-SMP.cur.t0)%d4;off=(p4>=60?89:p4)%b.duration;}
+  smpFadeOut(SMP.cur,SMP.FADE);
+  const src=AC.createBufferSource();src.buffer=b;src.loop=true;const g=AC.createGain();g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(SMP.mute?0:.75,now+SMP.FADE);
+  src.connect(g);g.connect(customGain);src.start(now,off);SMP.cur={id,src,g,t0:now-off};SMP.mute=false;
+  if(music.bus){const ob=music.bus;ob.gain.cancelScheduledValues(now);ob.gain.setValueAtTime(ob.gain.value,now);ob.gain.linearRampToValueAtTime(.0001,now+SMP.FADE);}
+  return true;}
 const mtof=m=>440*Math.pow(2,(m-69)/12);
 function pan(v){if(!AC.createStereoPanner){const gn=AC.createGain();return gn;}const p=AC.createStereoPanner();p.pan.value=v;return p;}
 function adsr(gn,t,a,peak,sus,rel,dur){
@@ -412,6 +430,7 @@ function playStep(i,t){
 setInterval(()=>{
   if(!AC||AC.state!=='running')return;
   applyMusic();
+  if(smpUpdate()){music.nextT=AC.currentTime+.05;return;}
   const cu=music.sec>=0?music.custom[Math.min(music.sec,2)]||music.custom[0]:null;
   if(cu){
     if(music.srcSec!==music.sec||!music.src){if(music.src){try{music.src.stop(AC.currentTime+.8);}catch(e){}}
@@ -950,7 +969,7 @@ function dmgBoss(d,x,y,big){
   pop(x+rnd(-6,6),y-6,d,big?'#ffd166':'#ffffff',big);
   if(b.hp<=0){b.hp=0;if(b.kind==='mirror'&&b.phase>=3&&!b.lastDone){startLastStand(b);return;}bossDie(b);}
 }
-function bossDie(b,noSlow){b.hp=0;b.dead=true;b.onG=false;b.vy=0;b.deathT=0;b.last=0;b.inv=0;bullets=[];lasers=[];strikes=[];aoes=[];SFX.boom();addShake(12);slowmo=noSlow?0:120;flash=1;b.hidden=false;if(AC&&music.bus)music.bus.gain.setTargetAtTime(.0001,AC.currentTime,1.6);}
+function bossDie(b,noSlow){b.hp=0;b.dead=true;b.onG=false;b.vy=0;b.deathT=0;b.last=0;b.inv=0;bullets=[];lasers=[];strikes=[];aoes=[];SFX.boom();addShake(12);slowmo=noSlow?0:120;flash=1;b.hidden=false;if(AC&&music.bus)music.bus.gain.setTargetAtTime(.0001,AC.currentTime,1.6);if(AC&&SMP.cur){const g=SMP.cur.g.gain;g.cancelScheduledValues(AC.currentTime);g.setValueAtTime(g.value,AC.currentTime);g.linearRampToValueAtTime(0,AC.currentTime+3);}}
 // 最終：血量歸零後的10秒裂空亂斬（無敵，撐過即勝）
 const LAST_IN=300,LAST_T=LAST_IN+1800;
 let scars=[];
@@ -1118,6 +1137,18 @@ function makeMirror(){
         if(q.last&&k===q.w+Math.round(q.cd.dur*.45)){const a=toW(b,q.aim);shot(b.x,b.y-24,a,6,{shape:'qi',r:9,dmg:40,life:90,col:'#b8a0ff'});SFX.qi();}}
     }
     if(t>b.end){b.sw=null;return true;}return false;};
+  // 鏡影閃步（第三階段）：像玩家一樣朝玩家方向左右閃避，閃到身邊立刻斬擊，連續4次（最後一刀可振）
+  const mstep=(b,t)=>{
+    const per=Math.round(36/Math.sqrt(D.spd)),n=4,i=Math.floor(t/per),k=t%per;
+    if(i>=n){b.sw=null;b.inv=0;return true;}
+    if(t===0){b.fly=false;b.sheathed=false;b.weapon='katana';}
+    if(k===0){b.face=Math.sign(P.x-b.x)||1;b.ddir=b.face;b.crouch=1;b.sw=null;if(i===n-1)glint(b,true);}
+    if(k>=4&&k<16){const dx=pc().x-b.x;if(Math.abs(dx)>34)b.x=clamp(b.x+b.ddir*Math.min(13,Math.abs(dx)-30),30,WW-30);b.inv=Math.max(b.inv,2);if(k%2===0)mGhost(b,'#cfe0ff');if(k===4){SFX.dash();addShake(1.5);}}
+    mPhys(b);
+    if(k===16){b.face=Math.sign(P.x-b.x)||b.face;b.aimS=aimL(b);const cd=COMBO[i===n-1?2:i%2];b.sw={cd};b.cdS=cd;
+      const R=(44+cd.ext)*PS*1.4+18;strike({kind:'sec',b,R,a0:b.aimS+cd.a0,a1:b.aimS+cd.a1,life:cd.dur,parry:i===n-1,dmg:i===n-1?50:38});SFX.swing(i===n-1);}
+    if(k>=16&&b.cdS&&k<16+b.cdS.dur){const kk=(k-16+1)/b.cdS.dur;b.swLA=lerp(b.aimS+b.cdS.a0,b.aimS+b.cdS.a1,ease(kk));b.bladeL=58+b.cdS.ext*1.3*Math.sin(Math.PI*kk);}
+    return false;};
   // 衝刺斬
   const dash=(b,t)=>{
     const n=b.phase>=1?4:3,w=Math.round(22/Math.sqrt(D.spd)),per=w+12+16,k=t%per,i=Math.floor(t/per);
@@ -1319,7 +1350,7 @@ function makeMirror(){
     if(t>=216&&t<=276&&(t-216)%20===0){const al=aimL(b);b.sw={cd:COMBO[2]};b.swLA=al+((t-216)/20%2?1.5:-1.7);b.bladeL=70;shot(b.x,b.y-24,a+rnd(-.08,.08),4.4,{shape:'qi',r:24,dmg:40,life:140,col:'#b8a0ff'});SFX.qi();SFX.swing(true);addShake(3);}
     if(t>310){b.sw=null;b.fly=false;b.flying=false;b.weapon='katana';return true;}return false;};
   b.hard=true;b.off=0;b.phaseAt=[.8,.6,.4];
-  b.phases=[[combo,dash,sky,counter,combo,dash],[gun,clones,combo,counter,gun,sky,dash],[thousand,gun,combo,clones,counter,thousand,dash],[judgement,dance,thousand,riftA,nova,skyGun,quadGun,twin,riftX,thousand,moonRain,dance,quadGun,skyGun,judgement,twin,riftA]];
+  b.phases=[[combo,dash,sky,counter,combo,dash],[gun,clones,combo,counter,gun,sky,dash],[thousand,mstep,gun,combo,clones,counter,mstep,thousand,dash],[judgement,dance,thousand,riftA,nova,skyGun,quadGun,twin,riftX,thousand,moonRain,dance,quadGun,skyGun,judgement,twin,riftA]];
   return b;
 }
 
