@@ -948,9 +948,9 @@ function deflect(s){
   if(b.posture>=100)postureBreak();
 }
 let execT=0,execB=null;
-function execStart(b){if(P&&P.__rp){mpSendTo(P.__rp,{t:'hurt',d:70});return;}execT=1;execB=b;strikes=[];bullets=[];lasers=[];aoes=[];P.sw=null;P.parryT=0;P.vx=0;P.vy=0;SFX.peril();SFX.iai();flash=.6;flashCol='90,40,200';b.sheathed=false;b.weapon='katana';}
+function execStart(b){if(P&&P.__rp){MP.rex={id:P.__rp,t:0};mpSendTo(P.__rp,{t:'exec'});strikes=[];bullets=[];lasers=[];aoes=[];b.sheathed=false;b.weapon='katana';return;}execT=1;execB=b;strikes=[];bullets=[];lasers=[];aoes=[];P.sw=null;P.parryT=0;P.vx=0;P.vy=0;SFX.peril();SFX.iai();flash=.6;flashCol='90,40,200';b.sheathed=false;b.weapon='katana';}
 function execUpdate(){
-  execT++;const b=execB,c=pc();b.anim++;
+  execT++;const b=execB,c=pc();b.anim++;b.inv=Math.max(b.inv,2);
   if(execT<22){b.x=lerp(b.x,c.x-b.face*22,.3);b.y=P.y+P.h;b.swLA=lerp(b.swLA,-2.4,.2);}
   if(execT>=26&&execT<=98&&(execT-26)%12===0){const side=((execT-26)/12)%2?1:-1;b.x=clamp(c.x+side*24,30,WW-30);b.face=-side;b.y=P.y+P.h;b.sw={cd:COMBO[((execT-26)/12)%2]};b.swLA=rnd(-2.2,1.6);b.bladeL=62;mGhost(b,'#ffffff');
     fx.push({type:'smark',x:c.x+rnd(-4,4),y:c.y+rnd(-6,6),a:rnd(0,TAU),life:18,max:18});SFX.swing();SFX.hit();addShake(4);part(c.x,c.y,12,'#ff6070',3,22);
@@ -1444,7 +1444,7 @@ function update(){
   if(MP.on&&!MP.host){mpClientBoss();}
   else if(boss&&boss.dormant){updMirror();}
   else if(boss){
-    if(MP.on)mpPreBoss();runBoss(boss);if(MP.on)mpPostBoss();
+    if(MP.on&&MP.rex)mpRemoteExec();else{if(MP.on)mpPreBoss();runBoss(boss);if(MP.on)mpPostBoss();}
     // 鏈條物理
     const b=boss,faceOff=b.face;
     bossChain(b);
@@ -2100,12 +2100,13 @@ function mpClientMsg(d){if(!d)return;
   if(d.t==='start'){MP.started=true;mpStartLocal(d.n);return;}
   if(d.t==='snap'){mpApplySnap(d);return;}
   if(d.t==='hurt'){if(P&&!P.dead&&state==='fight')hurt(d.d);return;}
+  if(d.t==='exec'){if(P&&!P.dead&&state==='fight'&&boss&&execT<=0)execStart(boss);return;}
   if(d.t==='back'){MP.started=false;if(state!=='title')toTitle();mpUI();return;}
   if(d.t==='vs'){for(const v of d.v)MP.vshots.push({x:v[0],y:v[1],vx:v[2],vy:v[3],c:v[4],life:24});return;}}
 function mpLeave(){if(MP.host&&MP.on)mpSendAll({t:'back'});mpCloseAll();mpStatus('');}
 
 // ---------- 開打 ----------
-function mpStartLocal(n){MP.aggro={};MP.total={};MP.open=false;MP.fadeDone=false;MP.hitIds=new Set();MP.vshots=[];MP.robj={};MP.lastAi=-1;MP.tgt='h';startFight(0);
+function mpStartLocal(n){MP.rex=null;MP.aggro={};MP.total={};MP.open=false;MP.fadeDone=false;MP.hitIds=new Set();MP.vshots=[];MP.robj={};MP.lastAi=-1;MP.tgt='h';startFight(0);
   P.pal=mpPal(MP.me.slot);P.palSlot=MP.me.slot;P.male=MP.me.male;P.rage=0;
   if(MP.host){const hp=Math.round(5000*(1+1.75*(Math.max(1,n)-1)));boss.mhp=boss.hp=boss.ghostHp=hp;}
   mpUI();}
@@ -2125,6 +2126,11 @@ function mpPreBoss(){MP.realP=P;MP.cap=true;if(!MP.host||!boss)return;const b=bo
   MP.anyAtk=mouse.l||Object.values(MP.rs).some(s=>s&&s.a);
   if(MP.tgt!=='h'&&MP.rs[MP.tgt]){const s=MP.rs[MP.tgt],px=MP.proxy||(MP.proxy={});
     Object.assign(px,{x:s.x,y:s.y,w:P.w,h:P.h,vx:s.vx,vy:s.vy,face:s.f,onG:!!s.g,dashT:s.dt,dashI:s.dt>0?2:0,iframes:s.i,dead:!!s.d,hp:s.hp,mhp:s.mh,parryT:s.pt,flying:!!s.fl,jumps:s.j,stun:0,__rp:MP.tgt});P=px;}}
+// 房主：遠端玩家被審判命中 → 房主驅動 Boss 的處決動作（傷害由被處決者自己承受）
+function mpRemoteExec(){const s=MP.rs[MP.rex.id];if(!s||!boss){MP.rex=null;return;}const px=MP.proxy||(MP.proxy={});
+  Object.assign(px,{x:s.x,y:s.y,w:P.w,h:P.h,vx:0,vy:0,face:s.f,onG:true,dashT:0,dashI:0,iframes:0,dead:false,hp:9999,mhp:9999,parryT:0,sw:null,__rp:MP.rex.id});
+  const sP=P,sE=execT,sB=execB;P=px;execT=MP.rex.t;execB=boss;MP.cap=true;try{execUpdate();}catch(e){execT=0;}
+  MP.rex.t=execT;MP.cap=false;P=sP;execT=sE;execB=sB;boss.inv=Math.max(boss.inv,2);if(MP.rex.t===0){MP.rex=null;boss.sw=null;}}
 function mpPostBoss(){if(MP.realP)P=MP.realP;MP.cap=false;}
 
 // ---------- 快照（房主 → 成員） ----------
@@ -2149,9 +2155,10 @@ function mpApplySnap(o){if(state!=='fight'||!boss)return;
   bullets=JSON.parse(o.bl,mpRev);
   strikes=JSON.parse(o.sk,mpRev).filter(s=>!MP.hitIds.has(s.id)).map(s=>{if(s.bb)s.b=boss;if(s.sg){const sg=s.sg;s.seg=()=>sg;}s.done=false;return s;});
   aoes=JSON.parse(o.ao,mpRev);lasers=JSON.parse(o.la,mpRev);
-  for(const f of JSON.parse(o.fx,mpRev))fx.push(f);
-  const q=JSON.parse(o.q);for(const [k,a] of q.sfx){try{MP.sfx0[k]&&MP.sfx0[k].apply(SFX,a);}catch(e){}}
-  if(mRig.out)for(const [x,y,col] of q.gh)ghosts.push({snap:snapRig(mRig.out,col),x,y,ox:mRig.ox,oy:mRig.oy,life:16,max:16});
+  const exM=execT>0; // 自己正在被處決時，特效音效由本地處決動畫負責
+  if(!exM)for(const f of JSON.parse(o.fx,mpRev))fx.push(f);
+  const q=JSON.parse(o.q);if(!exM)for(const [k,a] of q.sfx){try{MP.sfx0[k]&&MP.sfx0[k].apply(SFX,a);}catch(e){}}
+  if(mRig.out&&!exM)for(const [x,y,col] of q.gh)ghosts.push({snap:snapRig(mRig.out,col),x,y,ox:mRig.ox,oy:mRig.oy,life:16,max:16});
   for(const a of q.rs){try{MP.rs0.apply(null,a);}catch(e){}}
   if(o.m&&mirror)Object.assign(mirror,o.m);introT=o.it;if(o.fl){flash=Math.max(flash,o.fl[0]);flashCol=o.fl[1];}
   if(o.mu&&(o.mu[0]!==music.song||o.mu[1]!==music.sec))setMusic(o.mu[0],o.mu[1]);MP.tgt=o.tg==='h'?'h':o.tg;MP.total=o.tot||{};
