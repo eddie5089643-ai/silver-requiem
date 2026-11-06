@@ -1908,21 +1908,21 @@ let bIconFx=[];
 function drawBossFireBar(b,x0,y0,fw){if(fw<=0)return;const ph=Math.min(3,b.phase||0),t=frameN,dim=b.inv>0?.35:1;
   const gr=cx.createLinearGradient(0,y0*S,0,(y0+7)*S);gr.addColorStop(0,'#4a4a52');gr.addColorStop(.5,'#2c2c32');gr.addColorStop(1,'#18181c');cx.fillStyle=gr;cx.fillRect(Math.round(x0*S),Math.round(y0*S),Math.ceil(fw*S),Math.ceil(7*S));
   cx.save();cx.beginPath();cx.rect(x0*S,(y0-5)*S,fw*S,12*S);cx.clip();cx.globalCompositeOperation='lighter';cx.scale(S,S);cx.fillStyle='#ffffff';
-  const dens=[.45,.6,.8,1][ph],hM=[5,6.5,9,12][ph],al=[.45,.58,.75,.95][ph]*dim,stp=[9,7,5,3.5][ph];
+  const dens=[.45,.7,.95,1][ph],hM=[5,7.5,11,12][ph],al=[.45,.65,.88,.95][ph]*dim,stp=[9,6,4,3.5][ph];
   for(let x=x0+2;x<x0+fw;x+=stp){const id=Math.round(x),n1=Math.sin(id*1.3+t*.21),n2=Math.sin(id*.47-t*.13);if((n1*.5+.5)>dens+.15)continue;
     const fl=.5+.5*Math.sin(t*.37+id*2.1),h=hM*(.45+.55*fl)*(.7+.3*n2);flameTongue(cx,x,y0+7.5,-Math.PI/2+n2*.25,h,stp*1.5,Math.sin(t*.2+id)*1.5,al*(.6+.4*fl));}
-  const ov=[0,.08,.2,.62][ph]*dim;if(ov>0){cx.globalAlpha=ov*(.85+.15*Math.sin(t/7));cx.fillRect(x0,y0,fw,7);}
+  const ov=[0,.1,.34,.62][ph]*dim;if(ov>0){cx.globalAlpha=ov*(.85+.15*Math.sin(t/7));cx.fillRect(x0,y0,fw,7);}
   cx.globalAlpha=al*.8;for(let i=0;i<[1,2,3,5][ph];i++){const sx=x0+rnd(0,fw),sy=y0+rnd(-3,6);cx.fillRect(sx,sy,.8,.8);}
   cx.restore();cx.globalAlpha=1;cx.globalCompositeOperation='source-over';
   R(x0,y0,fw,1,'rgba(255,255,255,'+(.25+.15*ph)+')');}
 function drawBossIcon(b,cxI,cyI){const ph=Math.min(3,b.phase||0),idx=ph<=1?0:ph===2?1:2,im=BICON[idx],sc=.8,w=im.width*sc,h=im.height*sc,t=frameN;
-  const lv=[.55,.7,.85,1][ph],rad=[17,21,27,36][ph],pul=.55+.45*Math.sin(t/38);
+  const lv=[.7,.95,1.05,1.15][ph],rad=[18,24,29,36][ph],pul=.55+.45*Math.sin(t/38);
   cx.save();cx.globalCompositeOperation='lighter';
   const gx=cxI*S,gy=cyI*S,gr=cx.createRadialGradient(gx,gy,0,gx,gy,rad*(1+.12*pul)*S);
   const col=ph===2?'200,170,255':'235,235,255';gr.addColorStop(0,`rgba(${col},${.42*lv*(.6+.4*pul)})`);gr.addColorStop(.55,`rgba(${col},${.16*lv*(.5+.5*pul)})`);gr.addColorStop(1,`rgba(${col},0)`);
   cx.fillStyle=gr;cx.beginPath();cx.arc(gx,gy,rad*1.15*S,0,TAU);cx.fill();
   // 往外散的光點（階段越後越多、越遠）
-  if(Math.random()<[.12,.25,.45,.75][ph]){const a=rnd(0,TAU);bIconFx.push({k:'d',x:cxI+Math.cos(a)*8,y:cyI+Math.sin(a)*8,vx:Math.cos(a)*rnd(.15,.35)*(1+ph*.5),vy:Math.sin(a)*rnd(.15,.35)*(1+ph*.5),life:rnd(30,55)*(1+ph*.25),max:60});}
+  if(Math.random()<[.15,.35,.55,.8][ph]){const a=rnd(0,TAU);bIconFx.push({k:'d',x:cxI+Math.cos(a)*8,y:cyI+Math.sin(a)*8,vx:Math.cos(a)*rnd(.15,.35)*(1+ph*.5),vy:Math.sin(a)*rnd(.15,.35)*(1+ph*.5),life:rnd(30,55)*(1+ph*.25),max:60});}
   // 四階段：發光眼睛冒出往右的白火
   const ex=cxI-w/2+24.7*sc,ey=cyI-h/2+24.2*sc;
   if(ph===3){for(let i=0;i<2;i++)bIconFx.push({k:'f',x:ex+rnd(-1,1),y:ey+rnd(-1,1),vx:rnd(.5,1.1),vy:rnd(-.25,.05),life:rnd(18,30),max:30,s:rnd(.6,1.3)});}
