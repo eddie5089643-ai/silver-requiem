@@ -996,7 +996,7 @@ function dmgBoss(d,x,y,big){
   if(MP.on&&!MP.host){if(b.inv>0||b.trans>0||b.dormant){pop(x,y-6,'—','#777');return;}mpSendHost({t:'hit',d,x:r1(x),y:r1(y),big:!!big});pop(x+rnd(-6,6),y-6,d,big?'#ffd166':'#ffffff',big);b.hurtF=6;return;}
   if(b.inv>0||b.trans>0){pop(x,y-6,'—','#777');return;}
   if(b.mstepOn&&!b.msD&&b.broken<=0&&b.hold<=0&&Math.random()<(b.phase>=2?1:.5)){const dx=pc().x-b.x,rd=Math.random()<.5?-1:1;b.msD={k:0,dir:b.phase<2||Math.abs(dx)<30?rd:Math.sign(dx),slash:false};b.sw=null;SFX.dash();addShake(1.5);pop(x,y-6,'MISS','#cfe0ff');return;}
-  b.hp-=d;b.hurtF=6;b.ghostHp=Math.max(b.ghostHp,b.hp+d);
+  b.hp-=d;b.hurtF=6;if(MP.on&&MP.host){const hid=MP.hitter||'h';MP.aggro[hid]=(MP.aggro[hid]||0)+d;MP.total[hid]=(MP.total[hid]||0)+d;}b.ghostHp=Math.max(b.ghostHp,b.hp+d);
   pop(x+rnd(-6,6),y-6,d,big?'#ffd166':'#ffffff',big);
   if(b.hp<=0){b.hp=0;if(b.kind==='mirror'&&b.phase>=3&&!b.lastDone){startLastStand(b);return;}bossDie(b);}
 }
@@ -2015,7 +2015,7 @@ const MPCOL=[['白','#f2f2f8','#c4c4d2','#80809a'],['紅','#ffc4ca','#e8485c','#
 const MPCSS=['#ffffff','#ff5a6e','#5a96ff','#5ad26e','#ffd84a','#b67aff'];
 function mpPal(ci){const c=MPCOL[ci]||MPCOL[0];return Object.assign({},PC,{hairL:c[1],hairM:c[2],hairD:c[3]});}
 const MP={on:false,host:false,code:null,myId:'h',me:{slot:0,male:false},players:[],conns:{},hostConn:null,peer:null,pub:null,started:false,
-  rs:{},view:{},robj:{},q:{sfx:[],gh:[],rs:[]},cap:false,realP:null,tgt:'h',lastAi:-1,tick:0,anyAtk:false,hitIds:new Set(),status:'',vshots:[],
+  rs:{},view:{},robj:{},aggro:{},total:{},hitter:null,q:{sfx:[],gh:[],rs:[]},cap:false,realP:null,tgt:'h',lastAi:-1,tick:0,anyAtk:false,hitIds:new Set(),status:'',vshots:[],
   tx:/mpbc/.test(location.hash)?'bc':'peer',PFX:'srq26-',open:false,fadeDone:false};
 const r1=v=>Math.round(v*10)/10,r2=v=>Math.round(v*100)/100;
 
@@ -2067,7 +2067,7 @@ function mpHostMsg(c,d){if(!d)return;
     MP.conns[c.peer]=c;MP.players.push({id:c.peer,slot:sl,male:!!d.male});c.send({t:'welcome',id:c.peer,slot:sl,code:MP.code});mpBroadcastLobby();mpUI();return;}
   if(d.t==='male'){const p=MP.players.find(q=>q.id===c.peer);if(p){p.male=!!d.male;mpBroadcastLobby();mpUI();}return;}
   if(d.t==='st'){MP.rs[c.peer]=d.s;MP.view[c.peer]=d.s;return;}
-  if(d.t==='hit'){if(boss&&state==='fight'&&!boss.dormant)dmgBoss(d.d,d.x,d.y,d.big);return;}
+  if(d.t==='hit'){if(boss&&state==='fight'&&!boss.dormant){MP.hitter=c.peer;dmgBoss(d.d,d.x,d.y,d.big);MP.hitter=null;}return;}
   if(d.t==='dfl'){mpRemoteDeflect(d.id,d.pf);return;}
   if(d.t==='vs'){for(const v of d.v)MP.vshots.push({x:v[0],y:v[1],vx:v[2],vy:v[3],c:v[4],life:24});for(const id in MP.conns)if(id!==c.peer)mpSendTo(id,d);return;}}
 function mpRemoteDeflect(id,pf){const s=strikes.find(q=>q.id===id);if(!s||s.done||!boss)return;const b=boss;s.done=true;
@@ -2105,7 +2105,7 @@ function mpClientMsg(d){if(!d)return;
 function mpLeave(){if(MP.host&&MP.on)mpSendAll({t:'back'});mpCloseAll();mpStatus('');}
 
 // ---------- 開打 ----------
-function mpStartLocal(n){MP.open=false;MP.fadeDone=false;MP.hitIds=new Set();MP.vshots=[];MP.robj={};MP.lastAi=-1;MP.tgt='h';startFight(0);
+function mpStartLocal(n){MP.aggro={};MP.total={};MP.open=false;MP.fadeDone=false;MP.hitIds=new Set();MP.vshots=[];MP.robj={};MP.lastAi=-1;MP.tgt='h';startFight(0);
   P.pal=mpPal(MP.me.slot);P.palSlot=MP.me.slot;P.male=MP.me.male;P.rage=0;
   if(MP.host){const hp=Math.round(5000*(1+1.75*(Math.max(1,n)-1)));boss.mhp=boss.hp=boss.ghostHp=hp;}
   mpUI();}
@@ -2115,7 +2115,13 @@ function mpMyState(){const p=P;return {x:r1(p.x),y:r1(p.y),vx:r1(p.vx),vy:r1(p.v
 // ---------- 房主：Boss 目標切換（以代理物件暫代 P） ----------
 function mpAlive(id){if(id==='h')return P&&!P.dead;const s=MP.rs[id];return !!(s&&!s.d);}
 function mpPreBoss(){MP.realP=P;MP.cap=true;if(!MP.host||!boss)return;const b=boss;
-  if(b.ai!==MP.lastAi||frameN%360===0||!mpAlive(MP.tgt)){MP.lastAi=b.ai;const cand=['h'].concat(Object.keys(MP.rs)).filter(mpAlive);MP.tgt=cand.length?cand[Math.floor(Math.random()*cand.length)]:'h';}
+  // 仇恨：近期輸出（每秒衰減約 13%，約 5 秒減半）最高者被追；都沒輸出時追最近的人
+  for(const k in MP.aggro)MP.aggro[k]*=.9977;
+  if(b.ai!==MP.lastAi||frameN%60===0||!mpAlive(MP.tgt)){MP.lastAi=b.ai;const cand=['h'].concat(Object.keys(MP.rs)).filter(mpAlive);
+    if(cand.length){const pos=id=>id==='h'?{x:P.x,y:P.y}:MP.rs[id],dd=id=>{const q=pos(id);return Math.hypot(q.x-b.x,q.y-b.y);};
+      let best=cand[0],bv=-1;for(const id of cand){const v=MP.aggro[id]||0;if(v>bv+1e-6||(Math.abs(v-bv)<1e-6&&dd(id)<dd(best))){bv=v;best=id;}}
+      if(bv<=1){best=cand.reduce((a,id)=>dd(id)<dd(a)?id:a,cand[0]);}
+      const cur=mpAlive(MP.tgt)?(MP.aggro[MP.tgt]||0):-1;if(!(mpAlive(MP.tgt)&&best!==MP.tgt&&(MP.aggro[best]||0)<cur*1.2+5&&bv>1))MP.tgt=best;}else MP.tgt='h';}
   MP.anyAtk=mouse.l||Object.values(MP.rs).some(s=>s&&s.a);
   if(MP.tgt!=='h'&&MP.rs[MP.tgt]){const s=MP.rs[MP.tgt],px=MP.proxy||(MP.proxy={});
     Object.assign(px,{x:s.x,y:s.y,w:P.w,h:P.h,vx:s.vx,vy:s.vy,face:s.f,onG:!!s.g,dashT:s.dt,dashI:s.dt>0?2:0,iframes:s.i,dead:!!s.d,hp:s.hp,mhp:s.mh,parryT:s.pt,flying:!!s.fl,jumps:s.j,stun:0,__rp:MP.tgt});P=px;}}
@@ -2134,7 +2140,7 @@ function mpSnap(){const o={t:'snap'};
   const nf=[];for(const f of fx){if(!f.__s){f.__s=1;if(f.type!=='wisp')nf.push(f);}}o.fx=JSON.stringify(nf,mpRep);
   o.q=JSON.stringify(MP.q);MP.q={sfx:[],gh:[],rs:[]};
   o.pl=[{id:'h',s:mpMyState()}].concat(Object.keys(MP.rs).map(id=>({id,s:MP.rs[id]})));
-  o.m=mirror?{t:mirror.t,broken:mirror.broken,x:mirror.x,force:mirror.force}:null;o.it=introT;o.mu=[music.song,music.sec];o.fl=flash>.15?[r2(flash),flashCol]:null;
+  o.m=mirror?{t:mirror.t,broken:mirror.broken,x:mirror.x,force:mirror.force}:null;o.it=introT;o.mu=[music.song,music.sec];o.tg=MP.tgt;o.tot=MP.total;o.fl=flash>.15?[r2(flash),flashCol]:null;
   return o;}
 function mpApplySnap(o){if(state!=='fight'||!boss)return;
   if(o.b){const nb=JSON.parse(o.b,mpRev),ox=boss.x,oy=boss.y,tw=boss.twins;Object.assign(boss,nb);
@@ -2148,7 +2154,7 @@ function mpApplySnap(o){if(state!=='fight'||!boss)return;
   if(mRig.out)for(const [x,y,col] of q.gh)ghosts.push({snap:snapRig(mRig.out,col),x,y,ox:mRig.ox,oy:mRig.oy,life:16,max:16});
   for(const a of q.rs){try{MP.rs0.apply(null,a);}catch(e){}}
   if(o.m&&mirror)Object.assign(mirror,o.m);introT=o.it;if(o.fl){flash=Math.max(flash,o.fl[0]);flashCol=o.fl[1];}
-  if(o.mu&&(o.mu[0]!==music.song||o.mu[1]!==music.sec))setMusic(o.mu[0],o.mu[1]);
+  if(o.mu&&(o.mu[0]!==music.song||o.mu[1]!==music.sec))setMusic(o.mu[0],o.mu[1]);MP.tgt=o.tg==='h'?'h':o.tg;MP.total=o.tot||{};
   const seen=new Set();for(const e of o.pl){if(e.id===MP.myId)continue;seen.add(e.id);MP.view[e.id]=e.s;}
   for(const id in MP.view)if(!seen.has(id)){delete MP.view[id];delete MP.robj[id];}}
 // 成員端：不跑 AI，只把房主的 Boss 狀態平滑套上
@@ -2187,7 +2193,8 @@ function mpHUD(){if(!MP.on||state!=='fight'||!P)return;
   if(P.dead)T('復活倒數 '+Math.ceil((P.respawnT||0)/60),W/2,H/2-20,14,'#ffffff','center',8);
   let y=60;for(const pl of MP.players){const isMe=(MP.host&&pl.id==='h')||pl.id===MP.myId;const s=isMe?null:MP.view[pl.id];
     const hp=isMe?P.hp/P.mhp:(s?s.hp/(s.mh||200):0),dead=isMe?P.dead:(s&&s.d);
-    R(W-62,y,6,6,MPCSS[pl.slot]);R(W-52,y+2,40,2,'rgba(255,255,255,.2)');R(W-52,y+2,40*Math.max(0,hp),2,dead?'#555':'#ffffff');y+=9;}}
+    R(W-62,y,6,6,MPCSS[pl.slot]);R(W-52,y+2,40,2,'rgba(255,255,255,.2)');R(W-52,y+2,40*Math.max(0,hp),2,dead?'#555':'#ffffff');
+    if(MP.tgt===pl.id)T('◆',W-70,y+5.5,7,'#ff3c5a','center',6);T(String(Math.round(MP.total[pl.id]||0)),W-114,y+5.5,6,'#cfd4e6','left');y+=9;}}
 // 包裝：房主在跑 Boss AI 時，把音效、殘影、裂空火花記錄下來轉送
 MP.sfx0={};for(const k in SFX){const f=SFX[k];MP.sfx0[k]=f;SFX[k]=function(...a){if(MP.on&&MP.host&&MP.cap)MP.q.sfx.push([k,a]);return f.apply(SFX,a);};}
 {const _mG=mGhost;mGhost=function(b,col){if(MP.on&&MP.host&&MP.cap&&b===boss)MP.q.gh.push([b.rx,b.ry,col||'#3a2a60']);return _mG(b,col);};}
