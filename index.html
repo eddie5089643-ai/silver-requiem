@@ -982,7 +982,9 @@ function dmgBoss(d,x,y,big){
   pop(x+rnd(-6,6),y-6,d,big?'#ffd166':'#ffffff',big);
   if(b.hp<=0){b.hp=0;if(b.kind==='mirror'&&b.phase>=3&&!b.lastDone){startLastStand(b);return;}bossDie(b);}
 }
-function bossDie(b,noSlow){b.hp=0;b.dead=true;b.onG=false;b.vy=0;b.deathT=0;b.last=0;b.inv=0;bullets=[];lasers=[];strikes=[];aoes=[];SFX.boom();addShake(12);slowmo=noSlow?0:120;flash=1;b.hidden=false;if(AC&&music.bus)music.bus.gain.setTargetAtTime(.0001,AC.currentTime,1.6);if(AC&&SMP.cur){const g=SMP.cur.g.gain;g.cancelScheduledValues(AC.currentTime);g.setValueAtTime(g.value,AC.currentTime);g.linearRampToValueAtTime(0,AC.currentTime+3);}}
+function bossDie(b,noSlow){b.hp=0;b.dead=true;b.onG=false;b.vy=0;b.deathT=0;b.last=0;b.inv=0;bullets=[];lasers=[];strikes=[];aoes=[];SFX.boom();addShake(12);slowmo=noSlow?0:120;flash=1;b.hidden=false;}
+// Boss 碎裂消失時才讓配樂淡出
+function bossMusicFade(){if(!AC)return;if(music.bus)music.bus.gain.setTargetAtTime(.0001,AC.currentTime,1.2);if(SMP.cur){const g=SMP.cur.g.gain;g.cancelScheduledValues(AC.currentTime);g.setValueAtTime(g.value,AC.currentTime);g.linearRampToValueAtTime(0,AC.currentTime+3);}}
 // 最終：血量歸零後的10秒裂空亂斬（無敵，撐過即勝）
 const LAST_IN=300,LAST_T=LAST_IN+1800;
 let scars=[];
@@ -1087,7 +1089,7 @@ function runBoss(b){
     if(T<DE&&T%Math.max(3,9-Math.floor(T/70))===0)fx.push({type:'beam',x:b.x,y:b.y-18,a:rnd(0,TAU),life:40,max:40,g:T/DE});
     if(T>DE-90&&T<DE&&T%6===0){ring(b.x,b.y-18,'#ffffff',2,16);addShake(1.5);}
     if(T===80||T===170||T===250||T===320||T===370){SFX.clang(true);flash=.35;flashCol='220,210,255';addShake(5);ring(b.x,b.y-18,'#d8ccff',4,26);}
-    if(T===DE){for(let i=0;i<160;i++){const a=rnd(0,TAU),sp=rnd(1,7);parts.push({x:b.x+rnd(-6,6),y:b.y-18+rnd(-14,14),vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.5,life:rnd(50,110),max:110,col:Math.random()<.6?'#ececf6':'#b8a0ff',size:2,grav:.08});}
+    if(T===DE){bossMusicFade();for(let i=0;i<160;i++){const a=rnd(0,TAU),sp=rnd(1,7);parts.push({x:b.x+rnd(-6,6),y:b.y-18+rnd(-14,14),vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.5,life:rnd(50,110),max:110,col:Math.random()<.6?'#ececf6':'#b8a0ff',size:2,grav:.08});}
       part(b.x,b.y-18,100,'#ffffff',6,80,1);SFX.shatter();SFX.boom();flash=1;flashCol='255,255,255';addShake(16);ring(b.x,b.y-18,'#ffffff',8,50);ring(b.x,b.y-18,'#b8a0ff',3,60);}
     return;}
   if(b.broken>0){b.broken--;b.crouch=lerp(b.crouch,1,.15);b.float=0;b.y=lerp(b.y,b.groundY(),.2);b.swLA=lerp(b.swLA,1.3,.2);b.sheath=false;b.tilt=lerp(b.tilt||0,.3,.1);
