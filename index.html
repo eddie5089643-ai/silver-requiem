@@ -1994,17 +1994,13 @@ function drawHUD(){
     // 畫面外指示
     const sx=(b.x-VX0)*VZ,sy=(b.y-30-VY0)*VZ;
     if(!b.hidden&&(sx<0||sx>W||sy<0||sy>H)){const a=Math.atan2(sy-H/2,sx-W/2),ex=clamp(sx,22,W-22),ey=clamp(sy,22,H-40),r=9,pul=.5+.5*Math.sin(frameN/14);
-      // 蕾絲圓框＋Boss 頭像＋銀色箭頭（指向 Boss）
+      // Boss 頭像＋黑底白框箭頭（指向 Boss）
       cx.save();cx.translate(ex*S,ey*S);cx.scale(S,S);
-      cx.fillStyle='rgba(9,9,13,.9)';cx.beginPath();cx.arc(0,0,r,0,TAU);cx.fill();
-      cx.strokeStyle='#e6e6ee';cx.lineWidth=1;cx.beginPath();cx.arc(0,0,r,0,TAU);cx.stroke();
-      cx.globalAlpha=.6;cx.beginPath();cx.arc(0,0,r+2,0,TAU);cx.stroke();cx.globalAlpha=1;
-      cx.fillStyle='#e6e6ee';for(let i=0;i<12;i++){const q=i/12*TAU;cx.beginPath();cx.arc(Math.cos(q)*(r+3.4),Math.sin(q)*(r+3.4),.9,0,TAU);cx.fill();}
       const ph=Math.min(3,b.phase||0),im=b.kind==='mirror'&&BICON[ph<=1?0:ph===2?1:2];
-      if(im&&im.complete){cx.save();cx.beginPath();cx.arc(0,0,r-1,0,TAU);cx.clip();cx.imageSmoothingEnabled=false;cx.drawImage(im,-8.5,-8,17,17.5);cx.restore();}
-      cx.rotate(a);const d=r+6+pul*1.5;cx.shadowColor='rgba(220,210,255,.9)';cx.shadowBlur=6*S;cx.fillStyle='#f2f2f8';
-      cx.beginPath();cx.moveTo(d+6,0);cx.lineTo(d,-4.2);cx.lineTo(d+1.6,0);cx.lineTo(d,4.2);cx.closePath();cx.fill();
-      cx.globalAlpha=.55;cx.beginPath();cx.moveTo(d+1.4,0);cx.lineTo(d-2.4,-3);cx.lineTo(d-1.4,0);cx.lineTo(d-2.4,3);cx.closePath();cx.fill();
+      if(im&&im.complete){cx.imageSmoothingEnabled=false;cx.shadowColor='rgba(0,0,0,.8)';cx.shadowBlur=3*S;cx.drawImage(im,-9.5,-9.5,19,19.5);cx.shadowBlur=0;}
+      cx.rotate(a);const d=r+3+pul*1.5;cx.lineJoin='miter';
+      cx.beginPath();cx.moveTo(d+7,0);cx.lineTo(d,-5);cx.lineTo(d+2,0);cx.lineTo(d,5);cx.closePath();
+      cx.fillStyle='#0a0a0e';cx.fill();cx.strokeStyle='#f2f2f8';cx.lineWidth=1.1;cx.stroke();
       cx.restore();cx.shadowBlur=0;cx.globalAlpha=1;}
   }
   // 傷害數字
@@ -2256,9 +2252,9 @@ function mpHUD(){if(!MP.on||state!=='fight'||!P)return;
   // 畫面外的隊友：外觀頭像＋下方小血條（無箭頭）
   for(const id in MP.robj){const o=MP.robj[id];if(o.dead)continue;const sx=(o.x+P.w/2-VX0)*VZ,sy=(o.y+P.h/2-VY0)*VZ;if(sx>=0&&sx<=W&&sy>=0&&sy<=H)continue;
     const ex=clamp(sx,20,W-20),ey=clamp(sy,20,H-44),r=8,rg=rigFor(o.slot||0),out=rg.render(x=>drawPlayerRig(x,o,o.pal));
-    cx.save();cx.translate(ex*S,ey*S);cx.scale(S,S);cx.fillStyle='rgba(9,9,13,.9)';cx.beginPath();cx.arc(0,0,r,0,TAU);cx.fill();
-    cx.save();cx.beginPath();cx.arc(0,0,r-1,0,TAU);cx.clip();cx.imageSmoothingEnabled=false;const hx=(o.face||1)*1.2;cx.drawImage(out,-rg.ox-hx,-rg.oy+31,out.width,out.height);cx.restore();
-    cx.strokeStyle=MPCSS[o.slot]||'#fff';cx.lineWidth=1.2;cx.beginPath();cx.arc(0,0,r,0,TAU);cx.stroke();
+    cx.save();cx.translate(ex*S,ey*S);cx.scale(S,S);
+    // 只取外觀的頭部（不加圈框）
+    {const hx=Math.round(rg.ox+(o.face||1)*1.2),hy=Math.round(rg.oy-33),sw=20,sh=20;cx.imageSmoothingEnabled=false;cx.shadowColor='rgba(0,0,0,.8)';cx.shadowBlur=3*S;cx.drawImage(out,hx-sw/2,hy-sh/2,sw,sh,-10,-11,20,20);cx.shadowBlur=0;}
     const k=Math.max(0,Math.min(1,o.hp/(o.mhp||200)));cx.fillStyle='rgba(0,0,0,.7)';cx.fillRect(-9,r+2,18,3);cx.fillStyle='#ffffff';cx.fillRect(-8.5,r+2.5,17*k,2);
     cx.restore();}
   if(MP.wipeT)T('全員陣亡',W/2,H/2-20,18,'#ff6070','center',10);
