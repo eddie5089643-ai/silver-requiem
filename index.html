@@ -821,7 +821,7 @@ function updPlayer(){
   if(p.onG&&Math.abs(p.vx)>.5)p.runPh+=Math.abs(p.vx)*.13;
   // 振刀
   if(!st&&(mouse.rp||pressed['f']||pressed['k']))p.parryBuf=6;
-  if(p.parryBuf>0){p.parryBuf--;if(p.parryCD<=0){p.parryT=11;p.parryCD=44;p.parryBuf=0;p.sw=null;p.parryHit=false;p.sheathed=false;p.combatT=0;}}
+  if(p.parryBuf>0){p.parryBuf--;if(p.parryCD<=0){p.parryT=15;p.parryCD=44;p.parryBuf=0;p.sw=null;p.parryHit=false;p.sheathed=false;p.combatT=0;}}
   if(p.parryT>0){p.parryT--;if(p.parryT===0&&!p.parryHit)SFX.whiff();}
   // 連斬
   // 1：切換武器（太刀／手槍）
@@ -948,7 +948,7 @@ function updStrikes(){
   strikes=strikes.filter(s=>s.life>0&&!s.done);
 }
 function deflect(s){
-  const b=boss,c=pc(),perfect=P.parryT>=6;P.parryHit=true;
+  const b=boss,c=pc(),perfect=P.parryT>=8;P.parryHit=true;
   if(MP.on&&!MP.host&&s.id){mpSendHost({t:'dfl',id:s.id,pf:perfect});MP.hitIds.add(s.id);}
   const hx=b.rx+b.handL[0]*b.face,hy=b.ry+b.handL[1];
   const mx=lerp(c.x,hx,.4),my=lerp(c.y,hy,.4);
@@ -1104,7 +1104,7 @@ function runLastStand(b){const t=b.lt++;b.fly=true;b.flying=true;
   b.lns=b.lns||[];
   if(t>=LAST_T){if(!b.lns.length){b.sw=null;bossDie(b,true);}}
   else{const q=Math.min(1,(t-LAST_IN)/(25*60)),per=Math.max(3,Math.round(lerp(52,3,Math.pow(q,.8)))),warn=Math.round(lerp(30,18,q));
-    if(b.nextL===undefined||t>=b.nextL){const c=pc(),oa=rnd(0,TAU),orr=rnd(50,170),ox=b.x+Math.cos(oa)*orr,oy=b.y-24+Math.sin(oa)*orr,a=Math.atan2(c.y-oy,c.x-ox);b.lns.push({at:t+warn,a,x:ox,y:oy});b.nextL=t+per;b.lsw=(b.lsw||0)+1;if(b.lsw%5===0){const o0=rnd(0,TAU),nq=GAMEDIFF===1?10:6;for(let i=0;i<nq;i++)shot(b.x,b.y-24,o0+i*TAU/nq,3.2,{shape:'qi',r:12,dmg:34,life:230,col:'#ffffff'});SFX.qi();} // 每揮五刀：一圈 6 道圓形劍氣（隨機角度）
+    if(b.nextL===undefined||t>=b.nextL){const c=pc(),oa=rnd(0,TAU),orr=rnd(50,170),ox=b.x+Math.cos(oa)*orr,oy=b.y-24+Math.sin(oa)*orr,a=Math.atan2(c.y-oy,c.x-ox);b.lns.push({at:t+warn,a,x:ox,y:oy});b.nextL=t+per;b.lsw=(b.lsw||0)+1;if(b.lsw%10===0){const o0=rnd(0,TAU),nq=GAMEDIFF===1?6:4;for(let i=0;i<nq;i++)shot(b.x,b.y-24,o0+i*TAU/nq,3.2,{shape:'qi',r:12,dmg:34,life:230,col:'#ffffff'});SFX.qi();} // 每揮十刀：一圈圓形劍氣（普通 4 道／困難 6 道，隨機角度）
       b.sheathed=false;b.sw={cd:COMBO[b.lsw%3]};b.swLA=toLA(b,a)-(b.lsw%2?2.2:-1.4);
       fx.push({type:'tline',x:ox-Math.cos(a)*1500,y:oy-Math.sin(a)*1500,x2:ox+Math.cos(a)*1500,y2:oy+Math.sin(a)*1500,life:warn,max:warn,col:'#ff2e4a'});part(ox,oy,4,'#ffffff',1.5,14);
       if(per>=10||b.lsw%3===0)SFX.peril();}}
@@ -1646,7 +1646,7 @@ function drawPlayer(){
     cr.span+=angDiff(cr.prev,wa);cr.prev=wa;cr.a1=wa;cr.sx=sh[0];cr.sy=sh[1];cr.R=Math.max(cr.R*.9,L_+8);cr.upd=frameN;
     for(let i=0;i<2;i++)parts.push({x:tx+rnd(-2,2),y:ty+rnd(-2,2),vx:Math.cos(wa)*rnd(.3,1.2)+rnd(-.4,.4),vy:Math.sin(wa)*rnd(.3,1.2)+rnd(-.4,.4),life:rnd(10,20),max:20,col:Math.random()<.6?'#ffffff':'#bcd4ff',size:1});
     const sg=soft(10,'rgba(220,235,255,.8)');gg.globalAlpha=.8;gg.drawImage(sg,tx-10,ty-10);gg.globalAlpha=1;}
-  if(p.parryT>0||p.parryFlash>0){const k=p.parryT>0?p.parryT/11:p.parryFlash/12,col=p.parryFlash>0?'#ffffff':(p.parryT>=6?'#ffe9a8':'#cfe0ff');
+  if(p.parryT>0||p.parryFlash>0){const k=p.parryT>0?p.parryT/15:p.parryFlash/12,col=p.parryFlash>0?'#ffffff':(p.parryT>=8?'#ffe9a8':'#cfe0ff');
     gg.globalAlpha=k;gg.strokeStyle=col;gg.lineWidth=2;gg.beginPath();gg.arc(hx,hy-4,10+(1-k)*8,-2.4,.4);gg.stroke();
     if(p.parryFlash>0){gg.lineWidth=4;gg.beginPath();gg.moveTo(hx,hy);gg.lineTo(tx,ty);gg.stroke();}gg.globalAlpha=1;}
   if(p.parryFlash>0)p.parryFlash--;
