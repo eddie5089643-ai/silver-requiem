@@ -1154,7 +1154,8 @@ function makeMirror(){
     if(t>b.end){b.sw=null;return true;}return false;};
   // 鏡影閃步（第三階段）：8秒內走向玩家；被攻擊時60%閃避（朝玩家側閃，玩家在正上下方則隨機左右）；閃到玩家身旁會亮黃光揮刀（可振）
   const mstep=(b,t)=>{
-    if(t===0){b.fly=false;b.flying=false;b.sheathed=false;b.weapon='katana';b.sw=null;b.msD=null;b.mstepOn=true;b.msT=0;}
+    if(t===0){b.fly=false;b.flying=false;b.sheathed=false;b.weapon='katana';b.sw=null;b.msD=null;b.mstepOn=true;b.msT=0;b.msIdle=0;}
+    if(mouse.l)b.msIdle=0;else b.msIdle++; // 玩家4秒內沒攻擊（左鍵）就提早結束
     const d=b.msD;
     if(d){d.k++;
       if(d.k<=12){b.x=clamp(b.x+d.dir*11,30,WW-30);b.inv=Math.max(b.inv,2);if(d.k%2===0)mGhost(b,'#cfe0ff');b.face=Math.sign(P.x-b.x)||d.dir;mPhys(b);
@@ -1169,7 +1170,7 @@ function makeMirror(){
       b.msD=null;}
     // 走向玩家
     b.msT++;const dx=pc().x-b.x;b.face=Math.sign(dx)||b.face;b.vx=Math.abs(dx)>40?Math.sign(dx)*1.9:0;b.x=clamp(b.x+b.vx,30,WW-30);mPhys(b);b.swLA=lerp(b.swLA,-.6,.1);
-    if(t>=480){b.mstepOn=false;b.vx=0;b.sw=null;return true;}
+    if(t>=480||b.msIdle>=240){b.mstepOn=false;b.vx=0;b.sw=null;return true;}
     return false;};
   // 衝刺斬
   // 衝刺斬
