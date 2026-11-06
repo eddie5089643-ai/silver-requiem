@@ -769,7 +769,7 @@ const pShoulder=p=>[p.rx+2.5*PS*p.face,p.ry-31*PS];
 function hurt(d){
   if(P&&P.__rp){mpSendTo(P.__rp,{t:'hurt',d});return true;}
   if(godMode||P.iframes>0||P.dashT>0||P.dashI>0||P.dead||state!=='fight')return false;
-  const dmg=Math.round(d*D.dmg);P.hp-=dmg;P.iframes=60;stats.hits++;
+  const dmg=Math.round(d*D.dmg);P.hp-=dmg;P.iframes=42;stats.hits++;
   const c=pc();pop(c.x,P.y-6,dmg,'#ff6070');SFX.hurt();addShake(7);flash=.35;flashCol='200,30,50';
   part(c.x,c.y,16,'#ff6070',2.6,30,1);
   if(P.hp<=0){P.hp=0;P.dead=true;if(MP.on){P.respawnT=900;}else{state='dead';endT=0;}part(c.x,c.y,80,'#ffffff',4,70,2);SFX.boom();}
