@@ -900,7 +900,11 @@ function snapRig(src,col){const pool=snapPool();let c=pool.find(q=>!q.used);if(!
 let curCol='#ff2e4a';
 function shot(x,y,a,spd,o={}){const s=spd*D.spd;
   const b={x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:o.r||3,col:o.col||curCol,t:0,life:o.life||600,acc:o.acc||1,turn:o.turn||0,grav:o.grav||0,
-    shape:o.shape||'orb',dmg:o.dmg||22,maxV:o.maxV||99,ang:a,delay:o.delay||0};bullets.push(b);return b;}
+    shape:o.shape||'orb',dmg:o.dmg||22,maxV:o.maxV||99,ang:a,delay:o.delay||0};bullets.push(b);
+  // 困難：彈幕密集度兩倍（每發旁邊多一發，劍氣與地波除外）
+  if(GAMEDIFF===1&&!o.__tw&&b.shape!=='qi'&&b.shape!=='wave'){shotTw=-shotTw;shot(x,y,a+.085*shotTw,spd,Object.assign({},o,{__tw:1}));}
+  return b;}
+let GAMEDIFF=0,shotTw=1;
 function ringShot(x,y,n,spd,off,o){for(let i=0;i<n;i++)shot(x,y,off+i*TAU/n,spd,o);}
 function spread(x,y,a,n,sp,spd,o){for(let i=0;i<n;i++)shot(x,y,a+(n===1?0:(i/(n-1)-.5)*sp),spd,o);}
 function laser(o){const l=Object.assign({x:0,y:0,a:0,len:1600,w:12,tele:50,life:20,t:0,dmg:40,col:curCol,both:true},o);l.tele=Math.round(l.tele/Math.sqrt(D.spd));lasers.push(l);return l;}
@@ -1407,7 +1411,7 @@ const BOSSES=[makeMirror];
 //  流程
 // =====================================================================
 function startFight(i){
-  D=DIFFS[diffI];bossSel=i;P=newPlayer();boss=BOSSES[i]();curCol=boss.col;
+  D=DIFFS[diffI];bossSel=i;P=newPlayer();boss=BOSSES[i]();curCol=boss.col;if(GAMEDIFF===1){boss.mhp=boss.hp=Math.round(boss.mhp*1.5);boss.ghostHp=boss.hp;}
   bullets=[];lasers=[];strikes=[];aoes=[];parts=[];fx=[];pops=[];ghosts=[];trail=[];weather=[];pqi=[];pshots=[];crescents=[];scars=[];camK=0;execT=0;
   for(const c of snapPool())c.used=false;
   stats={time:0,parries:0,hits:0};state='fight';introT=0;endT=0;paused=false;bgL=0;
@@ -2115,7 +2119,7 @@ function mpHostMsg(c,d){if(!d)return;
 function mpRemoteDeflect(id,pf){const s=strikes.find(q=>q.id===id);if(!s||s.done||!boss)return;const b=boss;s.done=true;
   b.posture=Math.min(100,b.posture+34);b.postT=150;b.hold=30;b.recoil=1;if(s.onDeflect)s.onDeflect();for(const q of strikes)if(q.b===b)q.done=true;
   stats.parries++;SFX.clang(pf);if(b.posture>=100)postureBreak();}
-function mpHostStart(bi){if(!MP.host||MP.started)return;MP.started=true;MP.bi=bi||0;const n=MP.players.length;mpSendAll({t:'start',n,bi:MP.bi});mpStartLocal(n,MP.bi);}
+function mpHostStart(bi){if(!MP.host||MP.started)return;MP.started=true;MP.bi=bi||0;const n=MP.players.length;mpSendAll({t:'start',n,bi:MP.bi,df:GAMEDIFF});mpStartLocal(n,MP.bi);}
 
 // ---------- 加入 ----------
 function mpJoin(code){code=String(code||'').replace(/\D/g,'');if(code.length!==6){mpStatus('房號是 6 位數字');return;}
@@ -2139,7 +2143,7 @@ function mpClientMsg(d){if(!d)return;
   if(d.t==='welcome'){MP.myId=d.id;MP.me.slot=d.slot;MP.code=d.code;MP.status='';mpUI();return;}
   if(d.t==='lobby'){MP.players=d.players;MP.code=d.code;mpUI();return;}
   if(d.t==='full'){mpCloseAll();mpStatus('房間已滿或已經開打');return;}
-  if(d.t==='start'){MP.started=true;mpStartLocal(d.n,d.bi);return;}
+  if(d.t==='start'){MP.started=true;GAMEDIFF=d.df||0;mpStartLocal(d.n,d.bi);return;}
   if(d.t==='snap'){mpApplySnap(d);return;}
   if(d.t==='hurt'){if(P&&!P.dead&&state==='fight')hurt(d.d);return;}
   if(d.t==='exec'){if(P&&!P.dead&&state==='fight'&&boss&&execT<=0)execStart(boss);return;}
@@ -2151,7 +2155,7 @@ function mpLeave(){if(MP.host&&MP.on)mpSendAll({t:'back'});mpCloseAll();mpStatus
 // ---------- 開打 ----------
 function mpStartLocal(n,bi){MP.rex=null;MP.wipeT=0;MP.allDeadT=0;MP.aggro={};MP.total={};MP.open=false;MP.fadeDone=false;MP.hitIds=new Set();MP.vshots=[];MP.robj={};MP.lastAi=-1;MP.tgt='h';startFight(bi||0);
   P.pal=mpPal(MP.me.slot);P.palSlot=MP.me.slot;P.male=MP.me.male;P.rage=0;
-  if(MP.host){const hp=Math.round(5000*(1+1.75*(Math.max(1,n)-1)));boss.mhp=boss.hp=boss.ghostHp=hp;}
+  if(MP.host){const hp=Math.round(5000*(1+1.75*(Math.max(1,n)-1))*(GAMEDIFF===1?1.5:1));boss.mhp=boss.hp=boss.ghostHp=hp;}
   mpUI();}
 function mpMyState(){const p=P;return {x:r1(p.x),y:r1(p.y),vx:r1(p.vx),vy:r1(p.vy),f:p.face,g:p.onG?1:0,fl:p.flying?1:0,rp:r1(p.runPh||0),w:p.weapon==='gun'?1:0,la:r2(p.gunLA||0),rc:r1(p.recoil||0),
   sh:p.sheathed?1:0,st:p.sheatheT||0,pt:p.parryT||0,dt:p.dashT||0,sw:p.sw?1:0,sl:r2(p.swLA||0),bl:r1(p.bladeL||44),hp:Math.round(p.hp),mh:p.mhp,d:p.dead?1:0,c:MP.me.slot,m:MP.me.male?1:0,a:mouse.l?1:0,j:p.jumps||0,i:p.iframes||0};}
@@ -2305,13 +2309,13 @@ function mpUI(){const root=document.getElementById('mpRoot');if(!root)return;
 <button id="mpOpen">多人模式</button>
 <div id="mpPanel"><button class="x" id="mpX">✕</button>
   <div id="mpMenu"><h2>多人模式</h2>
-    <div class="lab">角色外觀</div><div class="row"><button data-g="f">女角</button><button data-g="m">男角（燕尾服）</button></div>
+    <div class="lab">角色外觀</div><div class="row"><button data-g="f">女角</button><button data-g="m">男角</button></div>
     <div class="lab">建立</div><div class="row"><button id="mpNew">建立房間（最多 6 人）</button></div>
     <div class="lab">加入</div><div class="row"><button id="mpRand">隨機匹配</button></div>
     <div class="row"><input id="mpIn" inputmode="numeric" maxlength="6" placeholder="輸入 6 位房號"><button id="mpGo" style="flex:none;width:72px">加入</button></div>
   </div>
   <div id="mpRoom"><h2>房間</h2><div class="lab">房號（分享給朋友）</div><div class="code" id="mpCode"></div>
-    <div class="lab">角色外觀</div><div class="row"><button data-g="f">女角</button><button data-g="m">男角（燕尾服）</button></div>
+    <div class="lab">角色外觀</div><div class="row"><button data-g="f">女角</button><button data-g="m">男角</button></div>
     <div class="lab" id="mpInfo"></div><div id="mpList"></div>
     <div class="row"><button id="mpStart">開始戰鬥</button><button id="mpWait" disabled>等待房主開始…</button><button id="mpLv" style="flex:none;width:72px">離開</button></div>
   </div>
@@ -2334,7 +2338,7 @@ function mpUI(){const root=document.getElementById('mpRoot');if(!root)return;
 // =====================================================================
 let LANG=(()=>{try{return localStorage.getItem('sr_lang')==='en'?'en':'zh';}catch(e){return 'zh';}})();
 const DICT={'單人模式':'Singleplayer','多人模式':'Multiplayer','設定':'Settings','音樂音量':'Music Volume','音效音量':'Sound Volume','語言':'Language','返回':'Back',
-  '角色外觀':'Appearance','女角':'Female','男角（燕尾服）':'Male (Tailcoat)','建立房間（最多 6 人）':'Create Room (up to 6)','建立':'Create','加入':'Join','隨機匹配':'Quick Match',
+  '角色外觀':'Appearance','女角':'Female','男角':'Male','建立房間（最多 6 人）':'Create Room (up to 6)','建立':'Create','加入':'Join','隨機匹配':'Quick Match',
   '房號（分享給朋友）':'Room code (share with friends)','房間':'Room','開始戰鬥':'Start Battle','等待房主開始…':'Waiting for host…','離開':'Leave','輸入 6 位房號':'6-digit room code',
   '建立房間中…':'Creating room…','連線到房間 ':'Connecting to room ','找不到房間 ':'Room not found: ','尋找房間中…':'Searching for rooms…','目前沒有可加入的房間，可以自己建立一個':'No open rooms right now — create one!',
   '房間已滿或已經開打':'Room is full or already in battle','與房主的連線中斷':'Lost connection to host','房號是 6 位數字':'Room code must be 6 digits','無法載入連線元件（PeerJS），請確認網路':'Could not load PeerJS — check your connection','連線錯誤：':'Connection error: ',
@@ -2345,7 +2349,7 @@ const DICT={'單人模式':'Singleplayer','多人模式':'Multiplayer','設定':
   '無敵模式':'God mode','自動瞄準':'Aimbot','生命已補滿':'Health restored','跳到第 ':'Jumped to phase ',' 階段':'','用法：/phase 1~4':'Usage: /phase 1~4','未知指令：':'Unknown command: ',
   'Boss 血條已清空，進入最終招':'Boss HP emptied — final stand begins','Boss 血條已清空':'Boss HP emptied','跳過最終招':'Final stand skipped','目前沒有可清空的 Boss':'No boss to clear','怒氣已回滿':'Rage refilled','請先進入戰鬥':'Enter a battle first',
   '補血藥水無冷卻':'No potion cooldown','手機介面':'Mobile UI','多人模式中只有房主能用 /phase、/kill':'Only the host can use /phase and /kill in multiplayer','多人模式沒有怒氣':'No rage in multiplayer',
-  '選擇 Boss':'Choose a Boss','操作說明':'Controls','左右移動（連按兩下：閃避）':'Move (double-tap: dodge)','閃避':'Dodge','空白鍵 / W':'Space / W','跳躍、飛行':'Jump / fly','滑鼠左鍵':'Left mouse','攻擊（刀）／射擊（槍）':'Slash (katana) / shoot (gun)','滑鼠右鍵 / F':'Right mouse / F','振刀（黃光攻擊可彈反，紅光不行）':'Parry (yellow flashes only, not red)','切換刀／手槍':'Switch katana / gun','換彈':'Reload','補血藥水':'Healing potion','聊天／指令（輸入 /help）':'Chat / commands (type /help)','暫停':'Pause','鏡中銀影':'Silver Reflection','敬請期待':'Coming soon','？？？':'???','— 撐過 30 秒 —':'— Survive 30 seconds —','復活倒數 ':'Respawn in ','全員陣亡':'PARTY WIPED','清空Boss血條':'empty boss HP','回滿怒氣':'full rage','藥水無冷卻':'no potion CD',
+  '選擇 Boss':'Choose a Boss','難度':'Mode','普通':'Normal','困難':'Hard','極難':'Extreme','開發中':'In development','彈幕密集度 ×2、Boss 最大血量 +50%':'2× bullet density, boss max HP +50%','標準難度':'Standard difficulty','操作說明':'Controls','左右移動（連按兩下：閃避）':'Move (double-tap: dodge)','閃避':'Dodge','空白鍵 / W':'Space / W','跳躍、飛行':'Jump / fly','滑鼠左鍵':'Left mouse','攻擊（刀）／射擊（槍）':'Slash (katana) / shoot (gun)','滑鼠右鍵 / F':'Right mouse / F','振刀（黃光攻擊可彈反，紅光不行）':'Parry (yellow flashes only, not red)','切換刀／手槍':'Switch katana / gun','換彈':'Reload','補血藥水':'Healing potion','聊天／指令（輸入 /help）':'Chat / commands (type /help)','暫停':'Pause','鏡中銀影':'Silver Reflection','敬請期待':'Coming soon','？？？':'???','— 撐過 30 秒 —':'— Survive 30 seconds —','復活倒數 ':'Respawn in ','全員陣亡':'PARTY WIPED','清空Boss血條':'empty boss HP','回滿怒氣':'full rage','藥水無冷卻':'no potion CD',
   '無敵':'god','補滿':'heal','跳階段':'phase','手機介面':'mobile UI','：開':': ON','：關':': OFF','此瀏覽器不支援全屏：iPhone 請用「分享 → 加入主畫面」再開啟':'Fullscreen not supported here. On iPhone use Share → Add to Home Screen'};
 const DICTK=Object.keys(DICT).sort((a,b)=>b.length-a.length);
 function tr(t){t=String(t);if(LANG!=='en')return t;for(const k of DICTK)if(t.includes(k))t=t.split(k).join(DICT[k]);return t;}
@@ -2368,7 +2372,9 @@ function tmUI(){const r=document.getElementById('tmenu');if(!r)return;const show
   const mo=document.getElementById('mpOpen');if(mo)mo.style.display='none';
   const mv=document.getElementById('tMv'),sv=document.getElementById('tSv');if(mv&&document.activeElement!==mv)mv.value=Math.round((music.on?musicVol:0)*100);if(sv&&document.activeElement!==sv)sv.value=Math.round(sfxVol*100);
   document.getElementById('tMvN').textContent=Math.round((music.on?musicVol:0)*100);document.getElementById('tSvN').textContent=Math.round(sfxVol*100);
-  for(const b of r.querySelectorAll('[data-lang]'))b.classList.toggle('sel',b.dataset.lang===LANG);}
+  for(const b of r.querySelectorAll('[data-lang]'))b.classList.toggle('sel',b.dataset.lang===LANG);
+  for(const b of r.querySelectorAll('#tBoss .d'))b.classList.toggle('sel',+b.dataset.d===GAMEDIFF);
+  const dn=document.getElementById('tDNote');if(dn)dn.textContent=tr(GAMEDIFF===1?'彈幕密集度 ×2、Boss 最大血量 +50%':'標準難度');}
 (function(){const root=document.createElement('div');root.id='tmenu';root.innerHTML=`
 <style>
 #tmenu{position:fixed;inset:0;pointer-events:none;z-index:4;font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;user-select:none;-webkit-user-select:none}
@@ -2376,7 +2382,7 @@ function tmUI(){const r=document.getElementById('tmenu');if(!r)return;const show
 #tmenu .tlogo .zh{font-weight:900;font-size:min(8.2vw,15vh,72px);letter-spacing:.14em;background:linear-gradient(#ffffff 30%,#c8c8dc 70%,#8a8aa4);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 14px rgba(210,200,255,.55)) drop-shadow(0 3px 0 #000)}
 #tmenu .tlogo .en{font-family:"UnifrakturMaguntia",serif;font-size:min(3.4vw,6vh,30px);color:#d8d8e6;letter-spacing:.12em;margin-top:-.2em;text-shadow:0 0 10px rgba(200,190,255,.6),0 2px 0 #000}
 #tmenu .tlogo .orn{color:#e8e8f0;font-size:min(2.4vw,4vh,20px);letter-spacing:.6em;opacity:.8;margin-top:.15em}
-#tItems{position:absolute;right:13%;top:42%;display:flex;flex-direction:column;align-items:center;gap:min(2.2vh,16px)}
+#tItems{position:absolute;left:50%;transform:translateX(-50%);top:44%;display:flex;flex-direction:column;align-items:center;gap:min(2.2vh,16px)}
 #tItems button{pointer-events:auto;background:none;border:none;color:#cfcfdc;font:700 min(4vw,7vh,32px) "Noto Serif TC",serif;letter-spacing:.22em;cursor:pointer;padding:.1em .4em;
   text-shadow:0 2px 0 #000,0 0 10px rgba(0,0,0,.9);transition:transform .12s,color .12s,text-shadow .12s;position:relative}
 #tItems button:hover,#tItems button:focus{color:#fff;transform:scale(1.13);outline:none;text-shadow:0 0 12px rgba(255,255,255,.9),0 0 26px rgba(190,170,255,.6),0 2px 0 #000}
@@ -2398,6 +2404,10 @@ function tmUI(){const r=document.getElementById('tmenu');if(!r)return;const show
 #tSet .n{width:2.4em;text-align:right;font-variant-numeric:tabular-nums;color:#fff}
 #tSet button,#mpPanel button{font-family:"Noto Serif TC",serif}
 #tBoss{display:none;position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);width:min(560px,94vw);padding:18px 18px 16px;pointer-events:auto;color:#e8e8f2}
+#tBoss .diff{display:flex;align-items:center;gap:8px;margin:0 0 6px}#tBoss .diff span{color:#cfcfdc;letter-spacing:.15em;font-size:14px;width:3.5em}
+#tBoss .d{flex:1;padding:7px 4px;border:1px solid #6a6880;background:#15141f;color:#fff;font:14px "Noto Serif TC",serif;letter-spacing:.15em;border-radius:3px;cursor:pointer}
+#tBoss .d.sel{background:#e8e8f2;color:#111;border-color:#fff}#tBoss .d.dis{opacity:.4;cursor:not-allowed}#tBoss .d small{display:block;font-size:10px;letter-spacing:0;color:#aaa}
+#tBoss .dnote{font-size:12px;color:#a8a6c0;min-height:16px;margin:0 0 10px 4.2em}
 #tBoss .cards{display:flex;gap:12px;justify-content:center}
 #tBoss .card{flex:1;max-width:170px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;border:1px solid #6a6880;background:#12111a;color:#fff;border-radius:3px;font-family:"Noto Serif TC",serif;cursor:pointer;transition:transform .12s,box-shadow .12s}
 #tBoss button.card:hover{transform:translateY(-3px);border-color:#fff;box-shadow:0 0 18px rgba(210,200,255,.45)}
@@ -2433,7 +2443,9 @@ function tmUI(){const r=document.getElementById('tmenu');if(!r)return;const show
     <div class="k"><span>T</span><em>聊天／指令（輸入 /help）</em></div>
     <div class="k"><span>Esc</span><em>暫停</em></div></div>
   <button class="back" id="tBack">返回</button></div>
-<div id="tBoss" class="lace"><h2>選擇 Boss</h2><div class="cards">
+<div id="tBoss" class="lace"><h2>選擇 Boss</h2>
+  <div class="diff"><span>難度</span><button class="d" data-d="0">普通</button><button class="d" data-d="1">困難</button><button class="d dis" data-d="2" disabled>極難<small>開發中</small></button></div>
+  <div class="dnote" id="tDNote"></div><div class="cards">
   <button class="card" data-b="0"><img id="tBossImg" alt=""><b>鏡中銀影</b><small>The Silver Reflection</small></button>
   <div class="card lock"><span class="q">？</span><b>？？？</b><small>敬請期待</small></div>
   <div class="card lock"><span class="q">？</span><b>？？？</b><small>敬請期待</small></div></div>
@@ -2445,6 +2457,7 @@ function tmUI(){const r=document.getElementById('tmenu');if(!r)return;const show
   $('tBack').onclick=()=>{TM.panel=null;tmUI();};
   $('tBossImg').src=BICON[0].src;
   for(const c of root.querySelectorAll('button.card'))c.onclick=()=>tmPick(+c.dataset.b);
+  for(const d of root.querySelectorAll('#tBoss .d'))d.onclick=()=>{if(d.disabled)return;GAMEDIFF=+d.dataset.d;tmUI();};
   $('tBossBack').onclick=()=>{TM.panel=null;tmUI();mpUI();};
   // 多人：房主按「開始戰鬥」後才選 Boss
   document.getElementById('mpStart').onclick=()=>{if(!MP.host)return;TM.panel='boss';TM.mode='mp';tmUI();};
