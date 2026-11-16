@@ -890,7 +890,7 @@ function updPlayer(){
     p.flying=false;p.x+=p.vx;p.x=clamp(p.x,4,WW-p.w-4);p.y+=p.vy;p.onG=false;if(p.y+p.h>=GROUND){p.y=GROUND-p.h;p.vy=Math.min(0,p.vy);p.onG=true;}if(p.y<0){p.y=0;if(p.vy<0)p.vy=0;}p.jumps=0;p.flight=p.fmax;}
   else{
   p.hover=!st&&!p.onG&&jh&&dn&&p.jumps>=2&&p.flight>0&&!jp; /* 飛行時按下：停在空中，左右速度提升 */
-  if(p.dashT<=0){const tg=((Rk?1:0)-(Lk?1:0))*3*KVM.spd*(p.onG?1:KVM.air)*(p.hover?HOVER_SPD:1)*(typeof wpnHas==='function'&&wpnHas('gun')?GUN_SPD:1); /* 裝備手槍（不用拿在手上）：移動速度加成 */p.vx+=(tg-p.vx)*(p.onG?.32:p.hover?.22:.16);}
+  if(p.dashT<=0){const tg=((Rk?1:0)-(Lk?1:0))*3*KVM.spd*(p.onG?1:KVM.air)*(p.hover?HOVER_SPD:1)*(typeof wpnHas==='function'&&wpnHas('gun')?GUN_SPD:1)*(p.rageOn&&p.weapon==='kunai'?1.5:1); /* 飛刀：怒氣狀態移速 ×1.5 */ /* 裝備手槍（不用拿在手上）：移動速度加成 */p.vx+=(tg-p.vx)*(p.onG?.32:p.hover?.22:.16);}
   if(jp){if(p.onG){p.vy=-6.8;p.onG=false;p.jumps=1;SFX.jump();part(c.x,p.y+p.h,8,'#ffffff',1.2,16);}
     else if(p.jumps<2){p.vy=-6.2;p.jumps=2;SFX.jump();ring(c.x,p.y+p.h,'#ffffff');}}
   p.flying=false;
@@ -4135,7 +4135,7 @@ function wpnHas(id){return LOADOUT.a===id||LOADOUT.b===id;}
 function wpnBookHeal(p){if(p.bookCD>0||p.dead)return;if(p.hp>=p.mhp)return;healFxSet(p,24,36,60);const c=pc(),hl=Math.min(Math.round(p.mhp*.3),p.mhp-p.hp);p.hp+=hl;p.bookCD=noPotCD?0:2700;if(p===P)stats.books++;pop(c.x,p.y-10,'+'+hl,'#8cffb0');SFX.heal();part(c.x,c.y,24,'#8cffb0',1.6,40);}
 // 數值（各武器 DPS 調成差不多，見訓練場）
 const KAT_MK=1.087,KAT_QK=.84; /* 近戰：近身 70%／劍氣 30% */
-const WPN_ST={staff:{cd:15,dmg:15,spd:5.95, /* 魔彈射速 -30% */life:90,turn:.12,laser:10,laserL:520,waveCD:30,waveDmg:45, /* 大法陣光波 DPS 約 90 */waveSpd:26,waveH:64,waveLen:120},kunai:{cd:4,dmg:6,spd:16.8,turn:.5,range:400,slow:90,seek:250,seekN:50,lockSpd:1.3,lockT:240,backR:300},sniper:{cd:50,dmg:64, /* DPS 約 75 */spd:44,life:40},book:{cd:24,heal:1,spd:12.25,life:240}};
+const WPN_ST={staff:{cd:15,dmg:15,spd:5.95, /* 魔彈射速 -30% */life:90,turn:.12,laser:10,laserL:520,waveCD:30,waveDmg:45, /* 大法陣光波 DPS 約 90 */waveSpd:26,waveH:64,waveLen:120},kunai:{cd:4,dmg:3, /* DPS 減半 */spd:16.8,turn:.5,range:400,slow:90,seek:250,seekN:25, /* 平常追蹤範圍減半 */lockSpd:1.3,lockT:240,backR:300},sniper:{cd:50,dmg:64, /* DPS 約 75 */spd:44,life:40},book:{cd:24,heal:1,spd:12.25,life:240}};
 const WPN_MZ={gun:14,staff:22,kunai:7,sniper:34,book:7}; /* 槍口／法杖頭／手持點到手的距離 */
 let PWP=[]; /* 新武器的投射物 */
 const wpnMouse=()=>({x:VX0+mouse.x/VZ,y:VY0+mouse.y/VZ});
@@ -4189,7 +4189,7 @@ function wpnKunAim(q,t){if(!t.a)return t; /* 飛刀：在目標碰撞箱裡、�
 function wpnNearPt(x,y,TT){const T=TT||wpnTargets();let best=null,bd=1e9;for(const t of T){const d=Math.hypot(t.x-x,t.y-y);if(d<bd){bd=d;best=t;}}return best;} /* 飛刀：各自追離自己最近的目標 */
 let PWT=[],STAFF_MODE=0;const SN_MAG=12,SN_RELOAD=80; /* 法杖攻擊方式：0＝魔彈＋身後法陣雷射，1＝前方大法陣光波，2＝召喚分身 */ /* 狙擊槍子彈消失後留下的拖尾 */
 function wpnFire(p,st,aim){const S=WPN_ST[p.weapon];if(!S||st||!mouse.l||p.fireCD>0||p.parryT>0||p.swapT>0)return;
-  const mz=p.muzzleW||[p.rx,p.ry-31*PS];p.fireCD=Math.round(S.cd*(p.rageOn?.7:1));p.combatT=0;
+  const mz=p.muzzleW||[p.rx,p.ry-31*PS];p.fireCD=Math.round(S.cd*(p.rageOn&&p.weapon!=='kunai'?.7:1)); /* 飛刀：怒氣不加攻速 */p.combatT=0;
   if(p.weapon==='staff'){p.staffN=(p.staffN||0)+1;p.recoil=1.2;
     if(STAFF_MODE===2){p.fireCD=24;if(!cloneSummon(p,mz,aim)){cloneDesignate();p.fireCD=20;}} /* 方式三：左鍵在準星處召喚分身；滿了就指定攻擊目標 */
     else if(STAFF_MODE===1){p.fireCD=Math.round(S.waveCD*(p.rageOn?.7:1)); /* 第二種：前方大法陣＋光波（攻速較慢） */
