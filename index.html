@@ -59,8 +59,7 @@ canvas{display:block;margin:0 auto;cursor:none}
   <div class="side" id="mobSide"><h3>指令列表</h3><div id="mobCmds"></div></div>
   <div class="inbar" id="mobBar"><input id="mobIn" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="輸入 / 開頭的指令或聊天"><button id="mobGo">送出</button></div>
 </div>
-<div id="ldr"><div class="tlogo"><div class="zh">銀刃安魂曲</div><div class="en">Silver Requiem</div><div class="orn">❦ ✦ ❦</div></div>
-<div class="lbox lace"><h2>載入中</h2><div class="bar"><i id="ldrBar"></i></div><div class="row"><span id="ldrTxt">準備中…</span><b id="ldrPct">0%</b></div></div></div>
+<div id="ldr"><div class="lbox lace"><h2>載入中</h2><div class="bar"><i id="ldrBar"></i></div><div class="row"><span id="ldrTxt">準備中…</span><b id="ldrPct">0%</b></div></div></div>
 <style>
 #ldr{position:fixed;inset:0;z-index:50;background:rgba(4,4,8,.28);font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;color:#e8e8f2;user-select:none;-webkit-user-select:none;transition:opacity .5s}
 #ldr.out{opacity:0;pointer-events:none}
@@ -73,7 +72,7 @@ html.ldg #tmenu,html.ldg #mpRoot{visibility:hidden} /* 載入中：背景用選�
 #ldr .lace::before,#ldr .lace::after{content:'';position:absolute;left:10px;right:10px;height:8px;background-repeat:repeat-x;background-size:12px 8px;pointer-events:none}
 #ldr .lace::before{top:-13px;background-image:radial-gradient(circle at 6px 8px,#e6e6ee 3.4px,transparent 3.9px)}
 #ldr .lace::after{bottom:-13px;background-image:radial-gradient(circle at 6px 0,#e6e6ee 3.4px,transparent 3.9px)}
-#ldr .lbox{position:absolute;left:50%;top:62%;transform:translate(-50%,-50%);width:min(380px,84vw);padding:18px 22px 16px}
+#ldr .lbox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,84vw);padding:18px 22px 16px}
 #ldr h2{margin:0 0 14px;font:900 19px "Noto Serif TC",serif;letter-spacing:.3em;text-align:center;color:#fff;text-shadow:0 0 10px rgba(200,190,255,.5)}
 #ldr .bar{height:10px;border:1px solid #cfcfdc;background:#0c0b12;padding:2px}
 #ldr .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#8a8aa4,#e6e6ee 60%,#ffffff);box-shadow:0 0 10px rgba(210,200,255,.6);transition:width .15s}
