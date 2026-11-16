@@ -2004,7 +2004,7 @@ function kvMobsStep(b){kvGibsStep();kvShardsStep();if(b.kind==='katavina')kvQuak
     else if(b.platHid&&b.platHid.length){PLATS.push(...b.platHid);b.platHid=[];}} /* 離開第一階段後放回 */
   if(!on){if(KV_MOBS.length){for(const m of KV_MOBS)part(m.x,m.y,14,'#b070ff',2.5,28,1);KV_MOBS=[];}b.mobT=0;return;}
   if((b.phase|0)>=2&&!b.p3done){for(const m of KV_MOBS){m.vx=m.vy=0;m.kbx=m.kby=0;m.dash=null;m.bm=null;}b.zap=null;b.tri=null;return;} /* 第三階段開場動畫：怪物全部停止 */
-  if(!b.mobInit&&p0){b.mobInit=true;b.mobT=0;b.shield=b.mshield=1000;b.eliteT=900;}
+  if(!b.mobInit&&p0){b.mobInit=true;b.mobT=0;b.shield=b.mshield=900;b.eliteT=900;}
   if(!p0&&sp&&!b.p2Init){b.p2Init=true;b.mobT=0;b.eliteRe=[];b.e2T=0;for(const m of KV_MOBS)if(m.k==='e'){m.mhp=600*kvMpN();m.hp=Math.min(m.hp,m.mhp);}} /* 第二階段開始：場上剩餘菁英怪最大血量改成 600 */
   if(!p0&&sp&&!kvCpAlive(b)){b.eliteRe=[];if(KV_MOBS.filter(m=>m.k==='e').length<eCap){if(++b.e2T>=2400){b.e2T=0;const c=pc(),o=KV_MOBS.find(m=>m.k==='e'),sd=o?(o.x<c.x?1:-1):(Math.random()<.5?-1:1);const p=kvElitePos(sd);kvMobSpawnElite(p.x,p.y);}}else b.e2T=0;} /* 第二階段：每 40 秒補一隻菁英怪（最多 3 隻） */
   if(sp){
