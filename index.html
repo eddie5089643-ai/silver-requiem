@@ -233,7 +233,11 @@ function audioInit(){
 const SMP={buf:[],cur:null,want:-1,mute:false,FADE:1.6,FILES:['music/t0.mp3','music/t1.mp3','music/t2.mp3','music/t3.mp3','music/t4.mp3','music/t5.mp3','music/kv1.mp3','music/kv2.mp3','music/kv3.mp3','music/kv3a.mp3','music/kv3b.mp3','music/m11.mp3','music/m12.mp3']}; /* 9、10：音樂欣賞用的原檔（第三階段原曲、無歌詞版），未剪輯 */
 function smpLoad(){if(SMP.loading)return;SMP.loading=true;
   SMP.FILES.forEach((f,i)=>{const M=window.__MUS;if(M&&M.buf&&M.buf[i]){SMP.buf[i]=M.buf[i];return;} /* 開啟時已緩存 */if(M&&M.ab&&M.ab[i]){AC.decodeAudioData(M.ab[i].slice(0)).then(b=>{SMP.buf[i]=b;}).catch(()=>{});return;}fetch(f).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(ab=>AC.decodeAudioData(ab)).then(b=>{SMP.buf[i]=b;}).catch(()=>{});});}
-function smpTrack(){if(state==='fight'&&boss&&boss.kind==='katavina'&&boss.kvWait)return 12; /* 開戰前：昔日黃昏 */if((state==='fight'||state==='dead')&&boss&&boss.track!==undefined)return boss.track;if(SMP.prev!==undefined&&state==='title')return SMP.prev;if(music.song==='title')return 0;const m=/^mirror_(\d)$/.exec(music.song);if(!m)return -1;const k=+m[1]+1;if(boss&&boss.dead&&SMP.cur)return SMP.cur.id;return (k===4&&boss&&boss.last)?5:k;}
+function smpTrack(){if(state!=='title'&&boss&&boss.kind==='katavina'&&boss.dead)return 'kvd'; /* 死亡：第三階段 4:35 淡入播完 → 無主帝國循環 */if(state==='fight'&&boss&&boss.kind==='katavina'&&boss.kvWait)return 12; /* 開戰前：昔日黃昏 */if((state==='fight'||state==='dead')&&boss&&boss.track!==undefined)return boss.track;if(SMP.prev!==undefined&&state==='title')return SMP.prev;if(music.song==='title')return 0;const m=/^mirror_(\d)$/.exec(music.song);if(!m)return -1;const k=+m[1]+1;if(boss&&boss.dead&&SMP.cur)return SMP.cur.id;return (k===4&&boss&&boss.last)?5:k;}
+function kvDeathMusic(){const S=SMP,now=AC.currentTime,c=S.cur,K3=KV_TRACK0+2;
+  if(!c||!c.kvd){const bf=S.buf[K3];if(!bf)return;if(c)smpFadeOut(c,1.5);if(S.bg){smpFadeOut(S.bg,1.2);S.bg=null;}if(music.bus){const ob=music.bus;ob.gain.cancelScheduledValues(now);ob.gain.setValueAtTime(ob.gain.value,now);ob.gain.linearRampToValueAtTime(.0001,now+1.5);}
+    const off=Math.min(275,bf.duration-2),src=AC.createBufferSource();src.buffer=bf;src.loop=false;const g=AC.createGain();g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.75,now+3);src.connect(g);g.connect(customGain);src.start(now,off);S.cur={id:'kvd',kvd:1,src,g,t0:now-off,end:now+(bf.duration-off)};return;}
+  if(c.kvd===1&&now>=c.end-1.6&&S.buf[11]){const bf=S.buf[11],src=AC.createBufferSource();src.buffer=bf;src.loop=true;const g=AC.createGain();g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.75,now+1.6);src.connect(g);g.connect(customGain);src.start(now,0);smpFadeOut(c,1.6);S.cur={id:'kvd',kvd:2,src,g,t0:now};}} /* 卡塔薇娜死亡音樂 */
 function smpFadeOut(c,T){if(!c)return;const g=c.g.gain;g.cancelScheduledValues(AC.currentTime);g.setValueAtTime(g.value,AC.currentTime);g.linearRampToValueAtTime(0,AC.currentTime+T);try{c.src.stop(AC.currentTime+T+.05);}catch(e){}}
 // 音樂欣賞：從指定時間點播放
 function smpPlayAt(id,off){
@@ -245,7 +249,7 @@ function smpBgStep(){if(!SMP.pPause||SMP.bg||!SMP.buf[0])return;if(AC.currentTim
   const src=AC.createBufferSource();src.buffer=SMP.buf[0];src.loop=true;const g=AC.createGain();g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.75,now+SMP.FADE);src.connect(g);g.connect(customGain);src.start(now,0);SMP.bg={id:0,src,g,t0:now};}
 function smpPos(){const c=SMP.cur;if(SMP.pPause)return SMP.pPause.off;if(!c||!SMP.buf[c.id])return 0;const el=AC.currentTime-c.t0;if(typeof KV_TRACK0!=='undefined'&&c.id===KV_TRACK0+2){const E=Math.min(KV3_LEN,SMP.buf[c.id].duration);return el<E?el:KV3_LOOP+(el-E)%(E-KV3_LOOP);} /* 第三階段：循環段 */return el%SMP.buf[c.id].duration;}
 function smpUpdate(){ // 回傳 true 表示由採樣配樂負責播放
-  const id=smpTrack();if(SMP.pPause&&state==='title')return true;if(id<0||!SMP.buf[id])return SMP.cur&&SMP.cur.id===id;
+  const id=smpTrack();if(id==='kvd'){kvDeathMusic();return true;}if(SMP.pPause&&state==='title')return true;if(id<0||!SMP.buf[id])return SMP.cur&&SMP.cur.id===id;
   if(SMP.cur&&SMP.cur.id===id)return true;
   const now=AC.currentTime,b=SMP.buf[id];let off=0;
   // 第四階段→最後謝幕：依目前播放時間對齊切換
@@ -1226,6 +1230,7 @@ function enterPhase(b,ph){
 }
 function runBoss(b){
   if(b.kind==='katavina'&&b.kvWait){kvWaitStep(b);return;} /* 開戰前：只有紫光球 */
+  if(b.kind==='katavina'&&b.dead){kvDeathStep(b);return;} /* 死亡動畫 */
   if(b.kind==='katavina'&&b.kvStun&&!b.dead&&kvStunStep(b))return;
   if(b.kind==='katavina'){kvPrinStep(b);kvArenaStep(b);kvMobsStep(b);if(b.trans>0&&b.warpFx){b.warpFx=null;b.warpHist=[];b.warpS=1;b.warpSH=[];b.haloS=1;b.haloSH=[];b.hidden=false;}if(b.warpFx){(b.warpHist=b.warpHist||[]).push({mode:b.warpFx.mode,t:b.warpFx.t});if(b.warpHist.length>6)b.warpHist.shift();}b.haloV=(b.phase|0)>=2?.02:.006;b.haloT=(b.phase|0)>=1?(b.haloT||0)+1:0;b.fr+=.13;b.haloA+=b.haloV;b.track=KV_TRACK0+Math.min(2,b.phase|0);if(b.p3done||b.p3vis)b.p3t2=(b.p3t2||0)+1;kvDebrisStep();if(b.dead&&(b.tl||b.closeUp)){b.tl=null;b.closeUp=false;b.waveRing=null;b.barr=null;b.swd=null;}if(b.beam&&((b.phase|0)!==1||b.dead||b.trans>0))b.beam=null;if((b.phase|0)>=2&&!b.dead)kvClockTick(b);if(KV_PDK>0)KV_PDK=Math.max(0,KV_PDK-.3/180);if(KV_PBG>0)KV_PBG--;kvP3Extra(b);kvRockStep(b);if(b.pil){if(b.dead)b.pil=null;else kvPillarsStep(b);}
   if((b.phase|0)>=2&&b.p3done&&!b.dead&&kvTimeline(b)){b.anim++;if(b.hurtF>0)b.hurtF--;if(b.inv>0)b.inv--;b.ghostHp=Math.max(b.hp,b.ghostHp-b.mhp*.004);return;}
@@ -2117,6 +2122,67 @@ function kvBeamLine(l,tele,fire){const ex=l.x+Math.cos(l.a)*6000,ey=l.y+Math.sin
   if(l.t<tele){g.save();g.globalAlpha=Math.min(1,(l.gold?.6:so?.5:.3)+.4*l.t/tele);g.strokeStyle=C1;g.lineWidth=W_>1||l.gold?2:1;g.beginPath();g.moveTo(l.x,l.y);g.lineTo(ex,ey);g.stroke();g.restore();}
   else if(l.t<tele+fire+4){const k=l.t<tele+fire?1:1-(l.t-tele-fire)/4;g.save();g.globalAlpha=k;g.strokeStyle=C1;g.lineWidth=(2.2*k+.5)*W_;g.beginPath();g.moveTo(l.x,l.y);g.lineTo(ex,ey);g.stroke();g.restore();
     gg.save();gg.globalAlpha=.7*k;gg.strokeStyle=C2;gg.lineWidth=7*k*Math.sqrt(W_)*1.4;gg.beginPath();gg.moveTo(l.x,l.y);gg.lineTo(ex,ey);gg.stroke();gg.restore();}}
+/* KVDEATH */
+/* ===== 卡塔薇娜死亡動畫（約 28 秒）：暈眩 → 皇女向上飛走傳送消失 → 本體發抖越來越亮、四周吸入紫色粒子、周圍扭曲 → 五道射光輪流穿出 → 強光畫面全白 → 粒子飄落、光源照出玩家影子（丁達爾） ===== */
+const KV_DTH=1700,KV_DPR=40,KV_DRAY=[600,680,760,840,920],KV_DFL=1000;
+function kvDeathStep(b){const T=++b.deathT;b.anim++;b.fr+=.1;b.inv=99999;b.ghostHp=Math.max(b.hp,b.ghostHp-b.mhp*.004);const c=kvCore(b);
+  if(T===1){for(const m of KV_MOBS){try{kvBlood(m.x,m.y,m.k==='e'?34:16,-Math.PI/2,1.6,m.k==='e'?5.5:4,true);kvMobGibs(m);}catch(e){}}if(KV_MOBS.length)kvMobDieSfx(true);KV_MOBS=[];
+    b.cb=null;b.rk=null;b.pil=null;b.tl=null;b.closeUp=false;b.waveRing=null;b.barr=null;b.swd=null;b.starFx=null;b.rbCharge=false;b.bh=null;b.ar=null;b.pa=null;b.pa2=null;b.suck=null;b.mobKill=null;b.qk=null;b.tri=null;b.zap=null;b.th=null;b.beam=null;
+    b.arm='half';b.armLift=null;b.handC=null;b.hidden=false;b.warpFx=null;b.warpS=1;KV_PDK=0;KV_MOBOL=0;b.dIn=[];b.dRays=[];b.dLight=null;b.y0d=b.y;}
+  kvRockStep(b);kvGibsStep();kvShardsStep();kvDebrisStep();
+  if(T<KV_DFL){b.y=lerp(b.y0d,Math.min(b.y0d+70,GROUND-156),Math.min(1,T/160));b.kvRot=Math.sin(T*.035)*.07*Math.min(1,T/60); /* 暈眩：慢慢下沉、左右晃 */
+    if(T===KV_DPR){const q=kvPrincessPos(b);b.dPr={x:q.x,y:q.y};SFX.blink&&SFX.blink();}
+    const k=clamp((T-200)/(KV_DFL-200),0,1);b.jx=Math.round(rnd(-1,1)*(.5+k*7));b.jy=Math.round(rnd(-1,1)*(.5+k*5));if(T%6===0&&k>0)addShake(1+k*4); /* 越來越抖 */
+    if(T>=220&&T<KV_DFL-10){const n=T%2===0?1+(k>.5?1:0):0;for(let i=0;i<n;i++){const a=rnd(0,TAU),R=rnd(550,900);b.dIn.push({x:c.x+Math.cos(a)*R,y:c.y+Math.sin(a)*R*.75,vx:0,vy:0,h:[],s:rnd(4,7)});}}
+    if(T>=250&&T%40===0)(b.p3pull=b.p3pull||[]).push({x:c.x,y:c.y,t:0,T:50,r0:260+k*240,r:0,bw:18+k*14,a:10+k*22}); /* 周圍往內扭曲，越來越強 */
+    const ri=KV_DRAY.indexOf(T);if(ri>=0){const a=(b.dRayA==null?(b.dRayA=rnd(0,TAU)):b.dRayA)+ri*TAU/5*2+rnd(-.25,.25);b.dRays.push({a,t:0});SFX.laser&&SFX.laser();SFX.boom&&SFX.boom();addShake(9);flash=Math.max(flash,.35);flashCol='235,215,255';part(c.x,c.y,30,'#ffffff',5,40,2);} /* 五道射光輪流穿出 */
+    if(T===KV_DFL-1){b.dLight={x:c.x,y:c.y};b.hidden=true;b.jx=b.jy=0;SFX.boom&&SFX.boom();SFX.shatter&&SFX.shatter();addShake(24);for(let i=0;i<120;i++){const a=rnd(0,TAU),sp=rnd(2,10);parts.push({x:c.x,y:c.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:rnd(60,120),max:120,col:Math.random()<.5?'#ffffff':'#e0c0ff',size:2});}
+      KV_RK.waves.push({x:c.x,y:c.y,t:0,T:160,r:0,R:1500,bw:140,dmg:0,big:true,hit:true});}} /* 強光 */
+  for(const q of b.dIn){const dx=c.x-q.x,dy=c.y-q.y,d=Math.hypot(dx,dy)||1,sp=Math.min(28,4+700/Math.max(60,d));q.vx=lerp(q.vx,dx/d*sp,.12);q.vy=lerp(q.vy,dy/d*sp,.12);q.x+=q.vx;q.y+=q.vy;q.h.push([q.x,q.y]);if(q.h.length>9)q.h.shift();if(d<40)q.dead=true;}b.dIn=b.dIn.filter(q=>!q.dead);
+  for(const r of b.dRays)r.t++;
+  if(b.p3pull&&b.p3pull.length){for(const q of b.p3pull){q.t++;const e=Math.min(1,q.t/q.T);q.r=(1-e*e)*q.r0;}b.p3pull=b.p3pull.filter(q=>q.t<q.T);}}
+function kvDeathDraw(b){const T=b.deathT||0;if(T>=KV_DFL)return;const i=Math.floor(b.fr)%12,v=T<KV_DPR?'':'np',c0=kvFrame(i,v);if(!c0)return;const jx=b.jx||0,jy=b.jy||0,x0=Math.round(b.x-100*KV_S-KV_MX)+jx,y0=Math.round(b.y-130*KV_S-KV_M)+jy,r=b.kvRot||0,cy=b.y-150,c=kvCore(b);
+  const H=b.dIn||[];if(H.length){g.save();g.lineCap='round';for(const q of H){const h=q.h;for(let j=1;j<h.length;j++){const k=j/h.length;g.globalAlpha=.65*k;g.strokeStyle=k>.7?'#e6c8ff':'#a050f0';g.lineWidth=q.s*k;g.beginPath();g.moveTo(h[j-1][0],h[j-1][1]);g.lineTo(h[j][0],h[j][1]);g.stroke();}g.globalAlpha=1;g.fillStyle='#f0dcff';g.fillRect(Math.round(q.x-q.s/2),Math.round(q.y-q.s/2),q.s,q.s);}g.restore();} /* 吸入的紫色粒子 */
+  for(const ry of b.dRays||[]){const e=Math.min(1,ry.t/12),w=(6+Math.min(24,ry.t*.08))*e,L=6000,fl=.85+.15*Math.sin(frameN*.7+ry.a*5);g.save();g.translate(c.x,c.y);g.rotate(ry.a);g.globalCompositeOperation='lighter';const gr=g.createLinearGradient(0,-w*1.8,0,w*1.8);gr.addColorStop(0,'rgba(170,90,255,0)');gr.addColorStop(.35,'rgba(200,140,255,.7)');gr.addColorStop(.5,'rgba(255,255,255,1)');gr.addColorStop(.65,'rgba(200,140,255,.7)');gr.addColorStop(1,'rgba(170,90,255,0)');g.globalAlpha=fl;g.fillStyle=gr;g.fillRect(-60,-w*1.8,L,w*3.6);g.restore();
+    gg.save();gg.translate(c.x,c.y);gg.rotate(ry.a);gg.globalAlpha=.5*fl;gg.fillStyle='rgba(190,120,255,1)';gg.fillRect(0,-w*2.6,L,w*5.2);gg.restore();} /* 射光（畫在身體後面，從身體穿出） */
+  g.save();g.translate(b.x+jx,cy+jy);g.rotate(r);g.translate(-b.x-jx,-cy-jy);g.imageSmoothingEnabled=false;
+  g.drawImage(c0,x0,y0);const k=clamp((T-200)/(KV_DFL-200),0,1);
+  if(k>0){const sl=kvSil(c0,'dth'+v+i,'#e6c8ff'),fl=.85+.15*Math.sin(T*.6);g.globalCompositeOperation='lighter';g.globalAlpha=Math.min(1,k*1.1)*fl;g.drawImage(sl,x0,y0);if(k>.6){const sw=kvSil(c0,'dtw'+v+i,'#ffffff');g.globalAlpha=(k-.6)/.4*fl;g.drawImage(sw,x0,y0);}g.globalCompositeOperation='source-over';g.globalAlpha=1;} /* 全身越來越亮 */
+  if(k<.7)kvStunEyes(b); /* 暈眩：眼睛被黑點蓋住 */
+  g.restore();
+  {const gk=.3+k*1.2,R=Math.round(80+260*k);gg.globalAlpha=Math.min(1,gk);gg.drawImage(soft(R,'rgba(200,130,255,1)'),c.x-R,c.y-R);gg.globalAlpha=1;}
+  if(b.dPr&&T>=KV_DPR&&T<KV_DPR+170){const tt=T-KV_DPR,e=Math.min(1,tt/100),ez=e*e*(3-2*e),px=b.dPr.x,py=b.dPr.y-230*ez+Math.sin(tt*.2)*2*(1-e),pc_=kvPrCanvas(i),al=tt<120?1:Math.max(0,1-(tt-120)/20); /* 皇女從本體離開往上飛，傳送動畫消失 */
+    if(al>0){const po=kvSil(pc_,'pr'+i,'#c46aff'),qx=Math.round(px-19.5*KV_PS),qy=Math.round(py-28*KV_PS);g.save();g.imageSmoothingEnabled=false;g.globalAlpha=al;for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])g.drawImage(po,qx+dx,qy+dy);g.drawImage(pc_,qx,qy);g.restore();gg.globalAlpha=.5*al;gg.drawImage(soft(30,'rgba(200,140,255,1)'),px-30,py-30);gg.globalAlpha=1;}
+    if(tt>=100&&KV_MOB_WARP.complete){const wt=tt-100,f=Math.min(KV_EW_N-1,Math.floor(wt/KV_EW_SPD)),D=200;if(wt<KV_EW_SPD*KV_EW_N){g.save();g.imageSmoothingEnabled=false;g.drawImage(KV_MOB_WARP,(f%4)*200,Math.floor(f/4)*200,200,200,Math.round(px-D/2),Math.round(b.dPr.y-230-D/2),D,D);g.restore();}}}}
+{const _dk2=drawKatavina;drawKatavina=function(b){if(b&&b.kind==='katavina'&&b.dead){kvDeathDraw(b);return;}_dk2(b);};}
+/* 光：開戰前的聚光（灰塵、玩家擋光）／死亡後的強光與影子 —— 畫在整個場景上（螢幕座標） */
+let KV_LC=null,KV_DUST=[];
+function kvShadowCut(x,sx,sy,len){const pls=[];if(P&&!P.dead)pls.push(P);if(typeof MP!=='undefined'&&MP.on)for(const id in MP.robj){const o=MP.robj[id];if(o&&!o.dead)pls.push(o);}
+  for(const p of pls){const px=(p.x+p.w/2-VX0)*VZ,py=(p.y+p.h/2-VY0)*VZ,dx=px-sx,dy=py-sy,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,hw=Math.max(p.w,10)*.55*VZ,hh=p.h*.5*VZ,ex=Math.abs(-uy)*hw+Math.abs(ux)*hh*0+hw*.0,nx=-uy,ny=ux,wd=Math.abs(nx)*hw+Math.abs(ny)*hh;
+    const ax=px-nx*wd,ay=py-ny*wd,bx=px+nx*wd,by=py+ny*wd,gr=x.createLinearGradient(px,py,px+ux*len,py+uy*len);gr.addColorStop(0,'rgba(0,0,0,.95)');gr.addColorStop(.6,'rgba(0,0,0,.55)');gr.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=gr;x.beginPath();x.moveTo(ax,ay);x.lineTo(bx,by);x.lineTo(bx+ux*len+nx*wd*.6,by+uy*len+ny*wd*.6);x.lineTo(ax+ux*len-nx*wd*.6,ay+uy*len-ny*wd*.6);x.closePath();x.fill();}}
+function kvDeathWhite(){const b=boss;if(!b||b.kind!=='katavina'||!b.dead||state==='title')return;const tt=(b.deathT||0)-(KV_DFL-1);if(tt<0)return;const wa=tt<60?1:Math.max(0,1-(tt-60)/150);if(wa<=0)return;cx.save();cx.setTransform(1,0,0,1,0,0);cx.globalCompositeOperation='source-over';cx.fillStyle=`rgba(255,255,255,${wa.toFixed(3)})`;cx.fillRect(0,0,cv.width,cv.height);cx.restore();} /* 強光：畫面全白後淡出（蓋在整個畫面上、HUD 下面） */
+function kvLightFx(){const b=boss;if(!b||b.kind!=='katavina'||state==='title')return;const wait=b.kvWait,T=b.deathT||0,dead=b.dead;if(!wait&&!(dead&&T>=KV_DFL-1))return;
+  if(!KV_LC)KV_LC=mk(W,H);const x=KV_LC.getContext('2d');x.setTransform(1,0,0,1,0,0);x.globalCompositeOperation='source-over';x.clearRect(0,0,W,H);
+  g.save();g.setTransform(1,0,0,1,0,0);
+  if(wait){g.fillStyle='rgba(2,2,6,.5)';g.fillRect(0,0,W,H); /* 開戰前：畫面亮度降低 */
+    const o=kvOrbPos(),sx=(o.x-VX0)*VZ,ax=sx,ay=(o.y-700-VY0)*VZ,fy=(GROUND-VY0)*VZ,R1=60*VZ,R2=420*VZ;
+    let gr=x.createLinearGradient(0,ay,0,fy);gr.addColorStop(0,'rgba(255,248,230,.05)');gr.addColorStop(.6,'rgba(255,245,225,.28)');gr.addColorStop(1,'rgba(255,240,220,.36)');
+    x.fillStyle=gr;x.beginPath();x.moveTo(ax-R1,ay);x.lineTo(ax+R1,ay);x.lineTo(ax+R2,fy);x.lineTo(ax-R2,fy);x.closePath();x.fill();
+    gr=x.createLinearGradient(ax-R2,0,ax+R2,0);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(.25,'rgba(0,0,0,0)');gr.addColorStop(.75,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,1)');x.globalCompositeOperation='destination-out';x.fillStyle=gr;x.fillRect(ax-R2,ay,R2*2,fy-ay); /* 聚光邊緣柔和 */
+    x.globalCompositeOperation='source-over';{const rg=x.createRadialGradient(ax,fy,0,ax,fy,R2*.9);rg.addColorStop(0,'rgba(255,245,225,.35)');rg.addColorStop(1,'rgba(255,245,225,0)');x.fillStyle=rg;x.save();x.translate(ax,fy);x.scale(1,.18);x.translate(-ax,-fy);x.fillRect(ax-R2,fy-R2,R2*2,R2*2);x.restore();} /* 地板光圈 */
+    if(KV_DUST.length<110&&frameN%2===0)KV_DUST.push({u:rnd(-1,1),v:rnd(0,1),du:rnd(-.0015,.0015),dv:rnd(-.0008,.0012),s:rnd(.6,1.6),ph:rnd(0,TAU),life:0}); /* 光裡飄的灰塵 */
+    for(const d of KV_DUST){d.u+=d.du+Math.sin(frameN/90+d.ph)*.0006;d.v+=d.dv;d.life++;const yy=ay+(fy-ay)*d.v,half=R1+(R2-R1)*d.v,xx=ax+d.u*half*.85,al=Math.min(1,d.life/60)*(.45+.35*Math.sin(frameN/20+d.ph))*(1-Math.abs(d.u));if(al>0){x.fillStyle=`rgba(255,250,235,${al.toFixed(3)})`;x.fillRect(xx,yy,d.s*VZ*1.4,d.s*VZ*1.4);}}
+    KV_DUST=KV_DUST.filter(d=>d.v>-.02&&d.v<1&&Math.abs(d.u)<1&&d.life<1200);
+    x.globalCompositeOperation='destination-out';kvShadowCut(x,ax,ay,900*VZ); /* 玩家擋住光線 */}
+  else{const L=b.dLight;if(!L){g.restore();return;}const tt=T-(KV_DFL-1),sx=(L.x-VX0)*VZ,sy=(L.y-VY0)*VZ,I=tt<60?1:tt<260?1-.45*(tt-60)/200:Math.max(0,.55*(1-(tt-260)/(KV_DTH-KV_DFL-300)));
+    if(I>0){const R=Math.hypot(W,H)*1.3;let rg=x.createRadialGradient(sx,sy,0,sx,sy,R);rg.addColorStop(0,`rgba(255,250,255,${(.9*I).toFixed(3)})`);rg.addColorStop(.15,`rgba(240,220,255,${(.45*I).toFixed(3)})`);rg.addColorStop(1,'rgba(200,170,255,0)');x.fillStyle=rg;x.fillRect(0,0,W,H);
+      x.save();x.translate(sx,sy);for(let k=0;k<14;k++){const a=k/14*TAU+frameN*.0015+Math.sin(k*3.7)*.2,w=.05+.04*Math.sin(k*1.3+frameN*.01);x.rotate(0);x.fillStyle=`rgba(255,245,255,${(.18*I).toFixed(3)})`;x.beginPath();x.moveTo(0,0);x.lineTo(Math.cos(a-w)*R,Math.sin(a-w)*R);x.lineTo(Math.cos(a+w)*R,Math.sin(a+w)*R);x.closePath();x.fill();}x.restore(); /* 光束（丁達爾） */
+      x.globalCompositeOperation='destination-out';kvShadowCut(x,sx,sy,1600*VZ); /* 玩家後方的影子 */}
+    if(tt>40&&frameN%2===0)for(let k=0;k<2;k++)parts.push({x:VX0+rnd(-20,W/VZ+20),y:VY0-8,vx:rnd(-.35,.35),vy:rnd(.35,1),life:rnd(260,420),max:420,col:Math.random()<.55?'#ffffff':'#e2c8ff',size:Math.random()<.3?2:1}); /* 畫面飄落粒子 */}
+  g.globalCompositeOperation='lighter';g.drawImage(KV_LC,0,0);g.globalCompositeOperation='source-over';
+  g.restore();}
+
 /* ===== 卡塔薇娜：開戰前場上沒有敵人，中間有紫光球上下飄；靠近按 F 開始（多人只有房主能按） ===== */
 function kvOrbPos(){return {x:WW/2,y:GROUND-250+Math.sin(frameN/40)*14};}
 function kvWaitNear(p){if(!p||p.dead)return false;const o=kvOrbPos(),cx_=p.x+p.w/2,cy_=p.y+p.h/2;return Math.abs(cx_-o.x)<120&&cy_>o.y-160;} /* 在光球下方（地板上）或旁邊都算靠近 */
@@ -2166,7 +2232,7 @@ function makeKatavina(){
   const b=Object.assign({phase:0,ai:0,t:0,pause:120,gap:20,hold:0,posture:0,postT:0,broken:0,crouch:0,lean:0,float:0,swLA:1,bladeL:44,bladeW:0,dashing:false,dead:false,deathT:0,
     inv:0,hurtF:0,anim:0,trans:0,rx:0,ry:0,handL:[0,0],shL:[0,-30],laNow:0,ghostT:0,hidden:false,onG:false,runPh:0,sheathed:true,sw:null,parryT:0,fly:false,flying:false,
     vx:0,vy:0,face:-1,weapon:'katana',gunLA:0,recoil:0},
-    {kind:'katavina',name:'Princess Katavina, the Chaos Hybrid',cn:'混沌異種・皇女卡塔薇娜',song:'mirror',col:'#b04aff',track:KV_TRACK0,hp:24000,phaseAt:[.7,.4],flyer:true,fixedBg:true,map:'palace',
+    {kind:'katavina',name:'Princess Katavina, the Chaos Hybrid',cn:'混沌異種・皇女卡塔薇娜',song:'mirror',col:'#b04aff',track:KV_TRACK0,hp:24000,phaseAt:[.75,.5],flyer:true,fixedBg:true,map:'palace',
      x:WW/2,y:GROUND,fr:0,haloA:0,haloV:.006,kvWait:true});
   b.mhp=b.hp;b.ghostHp=b.hp;b.hair=makeChain(2,b.x,b.y-40);b.groundY=()=>GROUND-140;
   const C=()=>pc(),SP_=()=>[1,1.2,1.4][b.phase|0]; // 階段越後移動越快
@@ -2393,7 +2459,7 @@ setMusic('title',-1);
 
 function update(){
   frameN++;if(state!=='fight')return;
-  stats.time++;if(introT>0)introT--;
+  if(!(boss&&boss.kind==='katavina'&&boss.dead))stats.time++;if(introT>0)introT--; /* 卡塔薇娜死亡後停止計時 */
   if(execT>0){execUpdate();stepMisc();return;}
   if(kvHoldPlayer()){P.vx=0;P.vy=0;P.flying=false;}else updPlayer(); /* 第三階段動畫中：空中的玩家停住不下掉 */
   if(MP.on&&P.dead)mpDeadStep();
@@ -2407,7 +2473,7 @@ function update(){
     bossChain(b);
     // 接觸傷害
     if(!b.dead&&!b.hidden&&b.broken<=0&&b.trans<=0&&b.kind!=='mirror'&&b.kind!=='katavina'&&b.kind!=='dummy'&&P&&!P.dead){const c=pc(),hb=bossHurt(b);if(ptSeg(c.x,c.y,hb.a[0],hb.a[1],hb.b[0],hb.b[1])<hb.r-4)hurt(b.dashing?50:25);}
-    if(b.dead&&b.deathT>=580&&state==='fight'){state='win';endT=0;setMusic('title',-1);}
+    if(b.dead&&b.deathT>=(b.kind==='katavina'?KV_DTH:580)&&state==='fight'){state='win';endT=0;setMusic('title',-1);}
   }
   updStrikes();updAoes();
   // 子彈
@@ -2924,7 +2990,7 @@ function render(){
     if(VZ!==1){g.scale(VZ,VZ);gg.scale(VZ,VZ);}KV_CAM=[Math.round(-VX0+sx-camK),Math.round(-VY0+sy)];g.translate(Math.round(-VX0+sx-camK),Math.round(-VY0+sy));gg.translate(Math.round(-VX0+sx-camK),Math.round(-VY0+sy));
     drawWorld();kvPullPost();kvPilPost();kvRockPost();drawScars();drawLastRing();drawMirror();drawAoes();drawLasers();drawGhosts();kvDarkOverlay();kvPilDarkDraw();kvCirclesDraw();kvChainDraw();if(typeof wpnHolePre==='function')wpnHolePre();drawBoss();kvEyeDots();kvPrEnhDraw();kvCpDraw();kvCpWreckDraw(false);kvCpWreckDraw(true);kvMobsDraw();kvMobsDrawTop();snHsDraw();kvP3FxDraw();kvRockDraw();kvHandCirclesDraw();kvPullDraw();kvPillarsDraw();wpnDraw();kvBeamDraw();if(!(boss&&boss.tl&&boss.tl.mode==='alone')&&!kvStarOn())kvPrinDraw();kvBHDraw();mpDrawRemotes();if(KV_DARK>.01)g.filter=`brightness(${(1-KV_DARK).toFixed(3)})`;kvChairDraw();drawPlayer();g.filter='none';kvArenaDraw();kvStarCover();if(kvStarOn()&&!(boss.tl&&boss.tl.mode==='alone'))kvPrinDraw(); /* 星空期間：皇女法陣畫在星空上面 */kvCosmosDraw();drawTrail();drawBullets();drawParts();drawFX();drawLock();
     g.restore();gg.restore();
-    kvBHPost();kvRingPost();kvShieldPost();kvStarEdgePost();kvSuckPost();kvBHTop();kvContrast();kvPrSpot();kvPrTop();kvSwordsTop(); // 黑洞周圍扭曲＋扭曲環（畫在整個場景上）
+    kvBHPost();kvRingPost();kvShieldPost();kvStarEdgePost();kvSuckPost();kvBHTop();kvContrast();kvPrSpot();kvPrTop();kvSwordsTop();kvLightFx(); // 黑洞周圍扭曲＋扭曲環（畫在整個場景上）
     // 暗角（越靠近 Boss 越壓迫；困難三階有心跳脈動）
     if(boss&&P&&!isTR()){const c=pc(),d=dist(c.x,c.y,boss.x,boss.y-50),hb=boss.hard&&boss.phase>=3&&!boss.dead?Math.pow(Math.max(0,Math.sin(frameN/20)),8)*.25+.15:0,k=clamp(1-d/500,0,1)*.35+boss.phase*.08+hb;
       const vg=g.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,H*.85);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,`rgba(0,0,0,${.35+k})`);g.fillStyle=vg;g.fillRect(0,0,W,H);}
@@ -2940,7 +3006,7 @@ function render(){
     const path=(key)=>{cx.beginPath();for(const r of riftCores){const q=r[key];cx.moveTo(q[0],q[1]);cx.lineTo(q[2],q[3]);cx.lineTo(q[4],q[5]);cx.lineTo(q[6],q[7]);cx.closePath();}};
     if(!voidPat)voidPat=cx.createPattern(VOIDSTARS,'repeat');cx.fillStyle=voidPat;path('o');cx.fill('nonzero');cx.restore();riftCores=[];}
   if(flash>0){cx.fillStyle=`rgba(${flashCol},${flash*.55})`;cx.fillRect(0,0,cv.width,cv.height);flash*=.88;if(flash<.02)flash=0;}
-  drawHUD();
+  kvDeathWhite();drawHUD();
   kvVignette();kvPilGlowDraw();kvWaitHud();
 }
 // 卡塔薇娜戰：整個畫面最上層的暈黑外框（平常 10%，特寫時漸顯到 30%，結束後漸回 10%）
@@ -3928,8 +3994,8 @@ function mpClientBoss(){const b=boss;if(!b)return;b.anim++;if(b._tx!==undefined)
   if(b.last&&b.lc&&b.lR&&P&&!P.dead){const c=pc(),dx=c.x-b.lc.x,dy=c.y-b.lc.y,d=Math.hypot(dx,dy)||1,lim=b.lR-10;
     if(d>lim){const k=(b.lt||0)<180?.08:1;P.x+=(dx/d*lim-dx)*k;P.y+=(dy/d*lim-dy)*k;const vn=(P.vx*dx+P.vy*dy)/d;if(vn>0){P.vx-=vn*dx/d;P.vy-=vn*dy/d;}}P.y=Math.min(P.y,GROUND-P.h);}
   if(b.dead)b.deathT++;
-  if(b.dead&&b.deathT>=420&&!MP.fadeDone){MP.fadeDone=true;bossMusicFade();}
-  if(b.dead&&b.deathT>=580&&state==='fight'){state='win';endT=0;setMusic('title',-1);}}
+  if(b.dead&&b.kind!=='katavina'&&b.deathT>=420&&!MP.fadeDone){MP.fadeDone=true;bossMusicFade();}
+  if(b.dead&&b.deathT>=(b.kind==='katavina'?KV_DTH:580)&&state==='fight'){state='win';endT=0;setMusic('title',-1);}}
 
 // ---------- 每幀：收送狀態、遠端玩家 ----------
 // 全員陣亡：5 秒後 Boss 淡出，整場重來
