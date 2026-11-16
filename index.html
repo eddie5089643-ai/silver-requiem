@@ -4203,7 +4203,7 @@ function wpnHas(id){return LOADOUT.a===id||LOADOUT.b===id;}
 function wpnBookHeal(p){if(p.bookCD>0||p.dead)return;if(p.hp>=p.mhp)return;healFxSet(p,24,36,60);const c=pc(),hl=Math.min(Math.round(p.mhp*.3),p.mhp-p.hp);p.hp+=hl;p.bookCD=noPotCD?0:2700;if(p===P)stats.books++;pop(c.x,p.y-10,'+'+hl,'#8cffb0');SFX.heal();part(c.x,c.y,24,'#8cffb0',1.6,40);}
 // 數值（各武器 DPS 調成差不多，見訓練場）
 const KAT_MK=1.087,KAT_QK=.84; /* 近戰：近身 70%／劍氣 30% */
-const WPN_ST={staff:{cd:15,dmg:15,spd:5.95, /* 魔彈射速 -30% */life:90,turn:.12,laser:10,laserL:520,waveCD:30,waveDmg:45, /* 大法陣光波 DPS 約 90 */waveSpd:26,waveH:64,waveLen:120},kunai:{cd:4,dmg:6,spd:16.8,turn:.5,range:400,slow:90,seek:250,seekN:25, /* 平常追蹤範圍減半 */lockSpd:1.3,lockT:240,backR:300},sniper:{cd:50,dmg:64, /* DPS 約 75 */spd:44,life:40},book:{cd:24,heal:1,spd:12.25,life:240}};
+const WPN_ST={staff:{cd:15,dmg:15,spd:5.95, /* 魔彈射速 -30% */life:90,turn:.12,laser:10,laserL:520,waveCD:30,waveDmg:45, /* 大法陣光波 DPS 約 90 */waveSpd:26,waveH:64,waveLen:120},kunai:{cd:4,dmg:6,spd:16.8,turn:.5,range:400,slow:90,seek:250,seekN:25, /* 平常追蹤範圍減半 */lockSpd:1.3,lockT:240,backR:300},sniper:{cd:50,dmg:85, /* DPS 約 100 */spd:44,life:40},book:{cd:24,heal:1,spd:12.25,life:240}};
 const WPN_MZ={gun:14,staff:22,kunai:7,sniper:34,book:7}; /* 槍口／法杖頭／手持點到手的距離 */
 let PWP=[]; /* 新武器的投射物 */
 const wpnMouse=()=>({x:VX0+mouse.x/VZ,y:VY0+mouse.y/VZ});
