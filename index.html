@@ -2186,9 +2186,9 @@ function kvLightFx(){const b=boss;if(!b||b.kind!=='katavina'||state==='title')re
 /* ===== 卡塔薇娜：開戰前場上沒有敵人，中間有紫光球上下飄；靠近按 F 開始（多人只有房主能按） ===== */
 function kvOrbPos(){return {x:WW/2,y:GROUND-250+Math.sin(frameN/40)*14};}
 function kvWaitNear(p){if(!p||p.dead)return false;const o=kvOrbPos(),cx_=p.x+p.w/2,cy_=p.y+p.h/2;return Math.abs(cx_-o.x)<120&&cy_>o.y-160;} /* 在光球下方（地板上）或旁邊都算靠近 */
-function kvWaitStep(b){b.anim++;b.hidden=true;b.inv=Math.max(b.inv||0,2);b.fr+=.13;const me=(typeof MP!=='undefined'&&MP.on&&MP.realP)||P;
+function kvWaitStep(b){introT=0; /* 開戰前不出現 Boss 標題 */b.anim++;b.hidden=true;b.inv=Math.max(b.inv||0,2);b.fr+=.13;const me=(typeof MP!=='undefined'&&MP.on&&MP.realP)||P;
   if(frameN%3===0){const o=kvOrbPos(),a=rnd(0,TAU),r=rnd(40,90);parts.push({x:o.x+Math.cos(a)*r,y:o.y+Math.sin(a)*r,vx:-Math.cos(a)*1.2,vy:-Math.sin(a)*1.2,life:30,max:30,col:Math.random()<.5?'#d8a8ff':'#ffffff',size:1});}
-  if(pressed['f']&&kvWaitNear(me)&&(!MP.on||MP.host)){const o=kvOrbPos();b.kvWait=false;b.hidden=false;b.inv=30;SFX.boom&&SFX.boom();addShake(12);flash=.7;flashCol='220,180,255';part(o.x,o.y,60,'#d8a8ff',6,50,2);part(o.x,o.y,30,'#ffffff',4,40,2);ring(o.x,o.y,'#d8a8ff',10,40);}} /* 房主（或單人）按 F：開始戰鬥 */
+  if(pressed['f']&&kvWaitNear(me)&&(!MP.on||MP.host)){const o=kvOrbPos();b.kvWait=false;introT=200; /* Start 後才出現標題 */b.hidden=false;b.inv=30;SFX.boom&&SFX.boom();addShake(12);flash=.7;flashCol='220,180,255';part(o.x,o.y,60,'#d8a8ff',6,50,2);part(o.x,o.y,30,'#ffffff',4,40,2);ring(o.x,o.y,'#d8a8ff',10,40);}} /* 房主（或單人）按 F：開始戰鬥 */
 function kvWaitDraw(b){const o=kvOrbPos(),t=frameN,pu=1+.08*Math.sin(t/9);gg.globalAlpha=.85;gg.drawImage(soft(Math.round(70*pu),'rgba(170,90,255,1)'),o.x-70*pu,o.y-70*pu);gg.globalAlpha=1;
   g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.9;g.drawImage(orb(Math.round(22*pu),'#ffffff','#a050ff'),o.x-24*pu,o.y-24*pu);g.restore();
   g.save();g.strokeStyle='rgba(216,168,255,.6)';g.lineWidth=1.5;g.beginPath();g.ellipse(o.x,o.y,46,14,t*.02,0,TAU);g.stroke();g.beginPath();g.ellipse(o.x,o.y,46,14,-t*.02+1,0,TAU);g.stroke();g.restore();}
@@ -3718,7 +3718,7 @@ function drawHUD(){
   cx.restore();
   // 下方：Boss 生命與架勢
   if(b&&!b.dormant&&!b.kvWait){const bw=360,x0=W/2-bw/2,y0=H-18;
-    cx.save();cx.translate(W/2*S,(H-6)*S);cx.scale(.7,.7);cx.translate(-W/2*S,-(H-6)*S); /* Boss 血條縮小 30%（以底部中央為基準） */
+    cx.save();cx.translate(W/2*S,(H-6)*S);cx.scale(.85,.85);cx.translate(-W/2*S,-(H-6)*S); /* Boss 血條縮小 15%（以底部中央為基準） */
     R(x0-3,y0-3,bw+6,12,'#08080c');R(x0-2,y0-2,bw+4,1,'#8a8a9a');R(x0-2,y0+8,bw+4,1,'#3a3a46');
     R(x0,y0,bw,7,'#1a0a0e');R(x0,y0,bw*b.ghostHp/b.mhp,7,'#f0e0e0');
     if(b.kind==='mirror')drawBossFireBar(b,x0,y0,bw*b.hp/b.mhp);
