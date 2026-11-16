@@ -970,7 +970,7 @@ function updPlayer(){
       for(let q=0;q<=4&&!s.hit;q++){const la=lerp(prevLA,p.swLA,q/4),wa=Math.atan2(Math.sin(la),Math.cos(la)*p.face);
         const a=[sh[0]+Math.cos(wa)*4,sh[1]+Math.sin(wa)*4],b2=[sh[0]+Math.cos(wa)*(p.bladeL*PS+12),sh[1]+Math.sin(wa)*(p.bladeL*PS+12)];
         if(segDist(a,b2,hb.a,hb.b)<hb.r+11){s.hit=true;const ix=lerp(a[0],b2[0],.72),iy=lerp(a[1],b2[1],.72);
-          playerHitsBoss(Math.round(s.cd.dmg*(s.iai?2:1)*KAT_MK),ix,iy,rnd(0,TAU)); /* 近戰傷害係數：近身 70%／劍氣 30% */ /* 近戰斬線方向隨機 */if(s.iai){hitstop=Math.max(hitstop,5);addShake(5);}}}
+          playerHitsBoss(Math.round(s.cd.dmg*(s.iai?2:1)*KAT_MK),ix,iy,rnd(0,TAU)); /* 近戰傷害係數：近身 70%／劍氣 30% */ /* 近戰斬線方向隨機 */if(s.iai){addShake(5);}}}
     }
     if(KV_MOBS.length&&s.t>1){s.mh=s.mh||new Set();const sh=pShoulder(p),wa=Math.atan2(Math.sin(p.swLA),Math.cos(p.swLA)*p.face);kvMobsSeg([sh[0],sh[1]],[sh[0]+Math.cos(wa)*(p.bladeL*PS+12),sh[1]+Math.sin(wa)*(p.bladeL*PS+12)],11,Math.round(s.cd.dmg*(s.iai?2:1)),s.mh);} /* 刀砍小怪 */
     if(kvCpAlive(boss)&&s.t>1){s.ch=s.ch||new Set();const sh=pShoulder(p),wa=Math.atan2(Math.sin(p.swLA),Math.cos(p.swLA)*p.face);kvCpSeg([sh[0],sh[1]],[sh[0]+Math.cos(wa)*(p.bladeL*PS+12),sh[1]+Math.sin(wa)*(p.bladeL*PS+12)],11,Math.round(s.cd.dmg*(s.iai?2:1)),s.ch);} /* 刀砍柱子 */
@@ -1014,7 +1014,7 @@ function playerHitsBoss(base,x,y,ang,light){
   if(crit&&light){crit=false;b.deathblown=false;}
   if(crit){const d=Math.round(b.mhp*.09);if(MP.on&&!MP.host){MP.critT=frameN+120;mpSendHost({t:'crit',x:r1(x),y:r1(y)});pop(x+rnd(-6,6),y-6,d,'#ffd166',true);b.hurtF=6;}else dmgBoss(d,x,y,true);hitstop=14;slowmo=40;flash=1;flashCol='255,255,255';addShake(12);SFX.deathblow();
     fx.push({type:'xslash',x,y,life:30,max:30});part(x,y,80,'#ffffff',5,50,2);b.broken=Math.min(b.broken,50);}
-  else{dmgBoss(Math.round(base*m*rnd(.9,1.1)),x,y,m>1);if(!light){hitstop=Math.max(hitstop,3);addShake(2.5);}else addShake(.6);SFX.hit();}
+  else{dmgBoss(Math.round(base*m*rnd(.9,1.1)),x,y,m>1);if(!light){addShake(2.5);}else addShake(.6);SFX.hit();}
   part(x,y,10,'#ffffff',3.2,18,1);fx.push({type:'spark',x,y,a:rnd(0,TAU),life:10,max:10});
 }
 function snapPool(){if(!snapPool.p)snapPool.p=[];return snapPool.p;}
