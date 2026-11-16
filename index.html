@@ -3459,7 +3459,7 @@ function kvRockDraw(){const b=boss;if(!b||b.kind!=='katavina')return;const X=KV_
   for(const w of X.waves){const e=w.t/w.T,fo=e>.8?(1-e)/.2:1,r=Math.max(2,w.r),bw=w.bw*(1-.35*e); /* 60% 紫色波：寬一點，外圈亮；碎石小爆炸：不亮的白色波 */
     if(!w.big){g.save();g.globalAlpha=.28*fo;g.strokeStyle='#e8e4ee';g.lineWidth=bw*.6;g.beginPath();g.arc(w.x,w.y,Math.max(1,r-bw*.3),0,TAU);g.stroke();g.restore();continue;}
     g.save();g.globalAlpha=.6*fo;const r0=Math.max(.1,r-bw),gr=g.createRadialGradient(w.x,w.y,r0,w.x,w.y,r);gr.addColorStop(0,'rgba(120,40,220,0)');gr.addColorStop(.55,'rgba(150,70,240,.55)');gr.addColorStop(.88,'rgba(200,130,255,.95)');gr.addColorStop(1,'rgba(245,225,255,1)');
-    g.fillStyle=gr;g.beginPath();g.arc(w.x,w.y,r,0,TAU);g.arc(w.x,w.y,r0,0,TAU,true);g.fill();g.restore();gg.save();gg.globalAlpha=.45*fo;gg.strokeStyle='rgba(210,150,255,1)';gg.lineWidth=Math.max(2,bw*.2);gg.beginPath();gg.arc(w.x,w.y,r-bw*.08,0,TAU);gg.stroke();gg.restore();}
+    g.fillStyle=gr;g.beginPath();g.arc(w.x,w.y,r,0,TAU);g.arc(w.x,w.y,r0,0,TAU,true);g.fill();g.restore();gg.save();gg.globalAlpha=.45*fo;gg.strokeStyle='rgba(210,150,255,1)';gg.lineWidth=Math.max(2,bw*.2);gg.beginPath();gg.arc(w.x,w.y,Math.max(.1,r-bw*.08),0,TAU);gg.stroke();gg.restore();}
   for(const bu of X.bursts){const e=bu.t/bu.T,s=bu.sc>=1?1:.5,r=Math.round((80+340*e)*s);gg.globalAlpha=(1-e)*(bu.sc>=1?1:.7);gg.drawImage(soft(r,'rgba(255,240,255,1)'),bu.x-r,bu.y-r);gg.globalAlpha=1;g.save();g.globalCompositeOperation='lighter';g.globalAlpha=(1-e)*.9;const r2=Math.round((60+120*e)*s);g.drawImage(soft(r2,'rgba(255,250,255,1)'),bu.x-r2,bu.y-r2);g.restore();} /* 爆炸大光 */
   g.restore();}
 function kvDistortEll(sx,sy,R,BW,A,sign,e,rot){const N=12;
@@ -3806,7 +3806,7 @@ function frame(now){
     else if(state==='fight'&&(!paused||MP.on||isTR())){ /* 訓練場：按 Esc 開選單但遊戲不暫停 */if(hitstop>0)hitstop--;else{gameAcc+=slowmo>0?.35:1;if(slowmo>0)slowmo--;while(gameAcc>=1){gameAcc-=1;update();if(MP.on&&state==='fight')mpAfterUpdate();}}}
     else frameN++;
     for(const k in pressed)pressed[k]=false;mouse.lp=mouse.rp=false;}
-  render();requestAnimationFrame(frame);
+  try{render();}catch(e){console.error(e);} /* 畫面出錯也不讓遊戲停住 */requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 window.__game={get state(){return state},get boss(){return boss},get P(){return P},startFight,get bullets(){return bullets},get cam(){return cam},deflectTest:()=>{},get strikes(){return strikes}};
