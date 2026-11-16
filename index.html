@@ -997,9 +997,9 @@ function playerHitsBoss(base,x,y,ang,light){
   if(b.counter>0){mirrorCounter(b);return;}
   if(P&&!MP.on&&!P.rageOn&&b.inv<=0&&b.trans<=0){P.rage=Math.min(100,P.rage+(light?1:5));if(P.rage>=100)rageStart();}
   if(!light&&!(typeof WPN_NOMARK!=='undefined'&&WPN_NOMARK))fx.push({type:'smark',x,y,a:ang||0,life:36,max:36,pl:true}); /* 近戰命中斬擊線：更長、殘留久一點慢慢淡出 */
-  if(b.broken>0){m=2;if(!b.deathblown){b.deathblown=true;crit=true;}}
+  if(b.broken>0){m=2;if(!b.deathblown&&!(MP.on&&!MP.host&&(MP.critT||0)>frameN)){b.deathblown=true;crit=true;}} /* 多人成員：一次破架只送一次爆擊，由房主判定 */
   if(crit&&light){crit=false;b.deathblown=false;}
-  if(crit){const d=Math.round(b.mhp*.09);dmgBoss(d,x,y,true);hitstop=14;slowmo=40;flash=1;flashCol='255,255,255';addShake(12);SFX.deathblow();
+  if(crit){const d=Math.round(b.mhp*.09);if(MP.on&&!MP.host){MP.critT=frameN+120;mpSendHost({t:'crit',x:r1(x),y:r1(y)});pop(x+rnd(-6,6),y-6,d,'#ffd166',true);b.hurtF=6;}else dmgBoss(d,x,y,true);hitstop=14;slowmo=40;flash=1;flashCol='255,255,255';addShake(12);SFX.deathblow();
     fx.push({type:'xslash',x,y,life:30,max:30});part(x,y,80,'#ffffff',5,50,2);b.broken=Math.min(b.broken,50);}
   else{dmgBoss(Math.round(base*m*rnd(.9,1.1)),x,y,m>1);if(!light){hitstop=Math.max(hitstop,3);addShake(2.5);}else addShake(.6);SFX.hit();}
   part(x,y,10,'#ffffff',3.2,18,1);fx.push({type:'spark',x,y,a:rnd(0,TAU),life:10,max:10});
@@ -3485,7 +3485,7 @@ function drawTitle(){
   // 立繪：放大的骨架角色
   // 立繪：像素化的玩家角色（呼吸起伏、髮絲飄動、刀身閃光）
   g.imageSmoothingEnabled=false;
-  if(HERO_B.complete&&HERO_B.width){const hx=Math.round(150+TOX-HERO_B.width/2),hy=Math.round(352+TOY-HERO_B.height),bob=Math.round(Math.sin(frameN/45)*1.2);
+  if(HERO_B.complete&&HERO_B.width&&!document.documentElement.classList.contains('ldg')){const hx=Math.round(150+TOX-HERO_B.width/2),hy=Math.round(352+TOY-HERO_B.height),bob=Math.round(Math.sin(frameN/45)*1.2);
     g.save();g.globalAlpha=.35;g.fillStyle='#000';g.beginPath();g.ellipse(hx+102,hy+HERO_B.height-2,70,6,0,0,TAU);g.fill();g.restore();
     g.drawImage(HERO_B,hx,hy+bob);
     if(HERO_H.complete)for(let y=0;y<HERO_H.height;y+=2){const k=Math.min(1,Math.max(.2,(y-78)/40)),off=Math.round(Math.sin(frameN/26-y*.08)*2.4*k);g.drawImage(HERO_H,0,y,HERO_H.width,2,hx+off,hy+bob+y,HERO_H.width,2);}
@@ -3799,6 +3799,7 @@ function mpHostMsg(c,d){if(!d)return;
   if(d.t==='chat'){mpChatLocal(d.s,d.x);for(const id in MP.conns)if(id!==c.peer)mpSendTo(id,d);return;}
   if(d.t==='ctrHit'){if(boss&&boss.counter>0){MP.hitter=c.peer;mirrorCounter(boss);MP.hitter=null;}return;}
   if(d.t==='hit'){if(boss&&state==='fight'&&!boss.dormant){MP.hitter=c.peer;dmgBoss(d.d,d.x,d.y,d.big);MP.hitter=null;}return;}
+  if(d.t==='crit'){const b=boss;if(b&&state==='fight'&&!b.dormant&&!b.dead&&b.broken>0&&!b.deathblown){b.deathblown=true;MP.hitter=c.peer;dmgBoss(Math.round(b.mhp*.09),d.x,d.y,true);MP.hitter=null;b.broken=Math.min(b.broken,50);addShake(12);}return;} /* 成員的破架爆擊：同一次破架只算第一下，之後暈眩照常縮短結束 */
   if(d.t==='dfl'){mpRemoteDeflect(d.id,d.pf);return;}
   if(d.t==='opcmd'){if(MP.ops&&MP.ops[c.peer]&&typeof d.x==='string'&&d.x[0]==='/')runCmd(d.x,true);return;}
   if(d.t==='vs'){for(const v of d.v)MP.vshots.push({x:v[0],y:v[1],vx:v[2],vy:v[3],c:v[4],life:24});for(const id in MP.conns)if(id!==c.peer)mpSendTo(id,d);return;}}
