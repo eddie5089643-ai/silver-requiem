@@ -3361,8 +3361,8 @@ function kvCbHitFx(c,ca,sa,W2,t){if(W2<2||paused)return;let best=1e9,kind=null;c
   const span=W2*1.6/Math.max(.25,Math.abs(ca*nx+sa*ny)); /* 光束斜穿時，打到面上的範圍比較寬 */
   if(frameN%2===0)KV_CBF.sc.push({x:hx+tx*rnd(-1,1)*span*.6,y:hy+ty*rnd(-1,1)*span*.6,nx,ny,t:0,life:Math.round(rnd(140,200)),r:rnd(16,30)*(.5+.5*wk),ph:rnd(0,TAU)});if(KV_CBF.sc.length>260)KV_CBF.sc.splice(0,KV_CBF.sc.length-260); /* 殘留火光 */
   for(let i=0;i<3;i++){const o=rnd(-1,1)*span*.7,sp=rnd(4,11),sx_=kind==='f'?rnd(-3,3):nx*rnd(2,6),sy_=kind==='f'?-sp:-rnd(2,7),lf=Math.round(rnd(18,34));parts.push({x:hx+tx*o,y:hy+ty*o,vx:sx_,vy:sy_,life:lf,max:lf,col:Math.random()<.4?'#ffffff':Math.random()<.5?'#ffd2f4':'#c890ff',size:Math.random()<.4?3:2,grav:.28});} /* 向上噴的火花 */
-  if(kind==='f'&&frameN%3===0)for(let i=0,n=Math.random()<.5?1:2;i<n;i++){const x0=hx+rnd(-1,1)*span*.6,S_=rnd(12,28)*(.6+.4*wk),N=4+(Math.random()*3|0),pts=[];for(let k=0;k<N;k++){const a=k/N*TAU+rnd(-.3,.3),rr=S_*rnd(.6,1.1);pts.push([Math.cos(a)*rr,Math.sin(a)*rr*.75]);}
-    KV_CBF.ch.push({x0,y0:GROUND,x:x0,y:GROUND,tx:x0+rnd(-70,70),ty:GROUND-rnd(50,340),T:Math.round(rnd(45,80)),t:0,rot:rnd(0,TAU),vr:rnd(-.25,.25),pts,hot:1});} /* 大塊地板碎片 */
+  if(kind!=='u'&&frameN%3===0)for(let i=0,n=Math.random()<.5?1:2;i<n;i++){const wl=kind!=='f',o_=rnd(-1,1)*span*.6,x0=wl?hx:hx+o_,y0=wl?hy+o_:GROUND,S_=rnd(12,28)*(.6+.4*wk),N=4+(Math.random()*3|0),pts=[];for(let k=0;k<N;k++){const a=k/N*TAU+rnd(-.3,.3),rr=S_*rnd(.6,1.1);pts.push([Math.cos(a)*rr,Math.sin(a)*rr*.75]);}
+    KV_CBF.ch.push({x0,y0,x:x0,y:y0,tx:wl?x0+nx*rnd(50,340):x0+rnd(-70,70),ty:wl?Math.min(GROUND-20,y0+rnd(-90,60)):GROUND-rnd(50,340), /* 牆壁：往場內噴 */T:Math.round(rnd(45,80)),t:0,rot:rnd(0,TAU),vr:rnd(-.25,.25),pts,hot:1});} /* 大塊地板碎片 */
   if(KV_CBF.ch.length>120)KV_CBF.ch.splice(0,KV_CBF.ch.length-120);}
 function kvCbFxDraw(){const F=KV_CBF;if(!boss||boss.kind!=='katavina'||state==='title'){F.sc.length=0;F.ch.length=0;return;}if(!F.sc.length&&!F.ch.length)return;const st=!paused;
   for(const q of F.sc){if(st)q.t++;const k=1-q.t/q.life;if(k<=0)continue;const fl=.75+.25*Math.sin(frameN*.5+q.ph),R=q.r*(.6+.4*k)*fl; /* 火光：越來越小、閃爍 */
