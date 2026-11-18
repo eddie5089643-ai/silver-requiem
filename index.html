@@ -221,19 +221,33 @@ function impulse(sec,decay,pre){
   for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=p;i<len;i++){const k=(i-p)/(len-p);d[i]=(Math.random()*2-1)*Math.pow(1-k,decay)*(1-Math.exp(-(i-p)/600));}}
   return b;
 }
-function audioInit(){
-  if(AC){if(AC.state==='suspended')AC.resume();return;}
-  try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;return;}
-  setTimeout(()=>{try{snSfxLoad();}catch(e){}},0); /* 預先載入狙擊槍聲 */
+/* 音訊保護：①固定 48kHz（高取樣率 DAC 不會讓殘響運算量暴增）②同時音效太多時略過 ③定期檢查：被暫停就恢復、輸出出現壞值（NaN）就重建混音鏈 */
+const AUD={};
+function audioGraph(){const o={master,comp,rev,rg:AUD.rg,an:AUD.an};
   master=AC.createGain();master.gain.value=.9;master.connect(AC.destination);
   comp=AC.createDynamicsCompressor();comp.threshold.value=-16;comp.knee.value=12;comp.ratio.value=5;comp.attack.value=.01;comp.release.value=.3;comp.connect(master);
-  rev=AC.createConvolver();rev.buffer=impulse(4.2,2.6,.03);
-  const rg=AC.createGain();rg.gain.value=.42;rev.connect(rg);rg.connect(comp);
+  rev=AC.createConvolver();rev.buffer=AUD.ir||(AUD.ir=impulse(4.2,2.6,.03));
+  AUD.rg=AC.createGain();AUD.rg.gain.value=.42;rev.connect(AUD.rg);AUD.rg.connect(comp);
+  AUD.an=AC.createAnalyser();AUD.an.fftSize=512;master.connect(AUD.an);
+  if(AUD.mDry){for(const [a,b] of [[AUD.mDry,o.comp],[musicBus,o.rev],[sfxBus,o.comp],[AUD.sr,o.rev],[customGain,o.comp]])try{a.disconnect(b);}catch(e){}
+    AUD.mDry.connect(comp);musicBus.connect(rev);sfxBus.connect(comp);AUD.sr.connect(rev);customGain.connect(comp);}
+  for(const k in o)try{o[k]&&o[k].disconnect();}catch(e){}}
+function audioWatch(){if(!AC)return;if(AC.state!=='running'&&AC.state!=='closed'){try{AC.resume();}catch(e){}}
+  if(AUD.an){const d=AUD.buf||(AUD.buf=new Float32Array(512));AUD.an.getFloatTimeDomainData(d);for(let i=0;i<d.length;i+=4)if(!isFinite(d[i])){audioGraph();break;}}}
+function audioCap(){if(AUD.cap)return;AUD.cap=1;const hist=[],wrap=O=>{for(const k in O){const f=O[k];if(typeof f!=='function')continue;
+  O[k]=function(){if(AC){const t=AC.currentTime;while(hist.length&&hist[0]<t-.2)hist.shift();if(hist.length>=28)return;hist.push(t);}return f.apply(this,arguments);};}};
+  wrap(SFX);if(typeof MP!=='undefined'&&MP.sfx0)wrap(MP.sfx0);} /* 0.2 秒內最多 28 個音效（含多人轉送的音效） */
+function audioInit(){
+  if(AC){if(AC.state!=='running'&&AC.state!=='closed')AC.resume();return;}
+  const AX=window.AudioContext||window.webkitAudioContext;try{AC=new AX({sampleRate:48000,latencyHint:'interactive'});}catch(e){try{AC=new AX();}catch(e2){AC=null;return;}}
+  setTimeout(()=>{try{snSfxLoad();}catch(e){}},0); /* 預先載入狙擊槍聲 */
+  audioGraph();
   musicBus=AC.createGain();musicBus.gain.value=music.on?.6*musicVol:0;
-  const mDry=AC.createGain();mDry.gain.value=.75;musicBus.connect(mDry);mDry.connect(comp);musicBus.connect(rev);
+  const mDry=AUD.mDry=AC.createGain();mDry.gain.value=.75;musicBus.connect(mDry);mDry.connect(comp);musicBus.connect(rev);
   sfxBus=AC.createGain();sfxBus.gain.value=.6*sfxVol;sfxBus.connect(comp);
-  const sr=AC.createGain();sr.gain.value=.18;sfxBus.connect(sr);sr.connect(rev);
+  const sr=AUD.sr=AC.createGain();sr.gain.value=.18;sfxBus.connect(sr);sr.connect(rev);
   customGain=AC.createGain();customGain.gain.value=music.on?.8*musicVol:0;customGain.connect(comp);
+  try{audioCap();}catch(e){}setInterval(()=>{try{audioWatch();}catch(e){}},500);
   noiseBuf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);
   const nd=noiseBuf.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
   music.nextT=AC.currentTime+.1;if(!music.want)music.want={song:music.song,sec:music.sec};music.bus=null;
