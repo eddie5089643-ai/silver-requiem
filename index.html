@@ -3363,7 +3363,7 @@ function kvCbHitFx(c,ca,sa,W2,t){if(W2<2||paused)return;let best=1e9,kind=null;c
   for(let i=0;i<3;i++){const o=rnd(-1,1)*span*.7,sp=rnd(4,11),sx_=kind==='f'?rnd(-3,3):nx*rnd(2,6),sy_=kind==='f'?-sp:-rnd(2,7),lf=Math.round(rnd(18,34));parts.push({x:hx+tx*o,y:hy+ty*o,vx:sx_,vy:sy_,life:lf,max:lf,col:Math.random()<.4?'#ffffff':Math.random()<.5?'#ffd2f4':'#c890ff',size:Math.random()<.4?3:2,grav:.28});} /* 向上噴的火花 */
   if(kind!=='u'&&frameN%3===0)for(let i=0,n=Math.random()<.5?1:2;i<n;i++){const wl=kind!=='f',o_=rnd(-1,1)*span*.6,x0=wl?hx:hx+o_,y0=wl?hy+o_:GROUND,S_=rnd(12,28)*(.6+.4*wk),N=4+(Math.random()*3|0),pts=[];for(let k=0;k<N;k++){const a=k/N*TAU+rnd(-.3,.3),rr=S_*rnd(.6,1.1);pts.push([Math.cos(a)*rr,Math.sin(a)*rr*.75]);}
     KV_CBF.ch.push({x0,y0,x:x0,y:y0,tx:wl?x0+nx*rnd(50,340):x0+rnd(-70,70),ty:wl?Math.min(GROUND-20,y0+rnd(-90,60)):GROUND-rnd(50,340), /* 牆壁：往場內噴 */T:Math.round(rnd(45,80)),t:0,rot:rnd(0,TAU),vr:rnd(-.25,.25),pts,hot:1});} /* 大塊地板碎片 */
-  if(KV_CBF.ch.length>120)KV_CBF.ch.splice(0,KV_CBF.ch.length-120);}
+  if(KV_CBF.ch.length>200)KV_CBF.ch.splice(0,KV_CBF.ch.length-200);}
 function kvCbFxDraw(){const F=KV_CBF;if(!boss||boss.kind!=='katavina'||state==='title'){F.sc.length=0;F.ch.length=0;return;}if(!F.sc.length&&!F.ch.length)return;const st=!paused;
   for(const q of F.sc){if(st)q.t++;const k=1-q.t/q.life;if(k<=0)continue;const fl=.75+.25*Math.sin(frameN*.5+q.ph),R=q.r*(.6+.4*k)*fl; /* 火光：越來越小、閃爍 */
     gg.globalAlpha=.75*k;gg.drawImage(soft(Math.max(4,Math.round(R*2)),'rgba(200,110,255,1)'),q.x-R*2,q.y-R*2);gg.globalAlpha=Math.min(1,1.1*k);gg.drawImage(soft(Math.max(3,Math.round(R*.8)),'rgba(255,220,250,1)'),q.x-R*.8,q.y-R*.8);gg.globalAlpha=1;
@@ -3371,10 +3371,10 @@ function kvCbFxDraw(){const F=KV_CBF;if(!boss||boss.kind!=='katavina'||state==='
   F.sc=F.sc.filter(q=>q.t<q.life);
   g.save();g.imageSmoothingEnabled=false;
   for(const q of F.ch){if(st){q.t++;const e=Math.min(1,q.t/q.T),ez=1-Math.pow(1-e,3); /* 越接近定點越慢 */q.x=lerp(q.x0,q.tx,ez);q.y=lerp(q.y0,q.ty,ez);q.rot+=q.vr*(1-ez*.9);q.hot=Math.max(0,1-q.t/50);}
-    const al=q.t<120?1:Math.max(0,1-(q.t-120)/30);if(al<=0)continue; /* 2 秒後淡出 */
+    const al=q.t<240?1:Math.max(0,1-(q.t-240)/30);if(al<=0)continue; /* 約 4 秒後淡出 */
     g.save();g.globalAlpha=al;g.translate(Math.round(q.x),Math.round(q.y));g.rotate(q.rot);g.beginPath();q.pts.forEach((p,k)=>k?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fillStyle='#2b2534';g.fill();g.strokeStyle='#4f4660';g.lineWidth=1.5;g.stroke();
     if(q.hot>0){g.globalCompositeOperation='lighter';g.globalAlpha=al*q.hot*.8;g.strokeStyle='#d898ff';g.lineWidth=1.5;g.stroke();}g.restore();}
-  g.restore();F.ch=F.ch.filter(q=>q.t<150);}
+  g.restore();F.ch=F.ch.filter(q=>q.t<270);}
 function kvP3BeamDraw(b){const Q=b.cb;if(!Q)return;if(b.dead||frameN-(Q.f||0)>3){b.cb=null;b.arm='half';b.jx=b.jy=0;return;} /* 招式被劇情打斷時清掉 */if(b.hidden)return;const c=kvCore(b),t=Q.t;
   for(const q of Q.parts){g.fillStyle='#d8a8ff';g.fillRect(Math.round(q.x),Math.round(q.y),2,2);gg.globalAlpha=.5;gg.drawImage(soft(5,'rgba(190,110,255,1)'),q.x-5,q.y-5);gg.globalAlpha=1;}
   const bar=(x,y,H,V,th,al,ec)=>{g.save();g.globalCompositeOperation='lighter';let gr=g.createLinearGradient(x-H,0,x+H,0);gr.addColorStop(0,ec);gr.addColorStop(.5,`rgba(255,255,255,${al})`);gr.addColorStop(1,ec);g.fillStyle=gr;g.fillRect(x-H,y-th/2,H*2,th);gr=g.createLinearGradient(0,y-V,0,y+V);gr.addColorStop(0,ec);gr.addColorStop(.5,`rgba(255,255,255,${al})`);gr.addColorStop(1,ec);g.fillStyle=gr;g.fillRect(x-th*.4,y-V,th*.8,V*2);g.restore();};
