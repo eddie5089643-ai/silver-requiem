@@ -4006,7 +4006,7 @@ function mpApplySnap(o){if(state!=='fight'||!boss)return;
   if(o.b){const nb=JSON.parse(o.b,mpRev),ox=boss.x,oy=boss.y,tw=boss.twins;Object.assign(boss,nb);
     if(boss.twins)boss.twins.forEach((w,i)=>{w.hair=(tw&&tw[i]&&tw[i].hair)||makeChain(9,w.x,w.y-40);});
     boss._tx=boss.x;boss._ty=boss.y;if(Math.hypot(boss.x-ox,boss.y-oy)<160){boss.x=ox;boss.y=oy;}
-    if(boss.kind==='katavina')mpXPrep(nb);else MP.xv=null;}
+    mpXPrep(nb);}
   bullets=JSON.parse(o.bl,mpRev);
   strikes=JSON.parse(o.sk,mpRev).filter(s=>!MP.hitIds.has(s.id)).map(s=>{if(s.bb)s.b=boss;if(s.sg){const sg=s.sg;s.seg=()=>sg;}s.done=false;return s;});
   aoes=JSON.parse(o.ao,mpRev);lasers=JSON.parse(o.la,mpRev);
@@ -4030,7 +4030,7 @@ function mpXPrep(nb){const cur=new Map();mpXWalk(nb,[],0,cur);const n=Math.max(1
   if(MP.xprev)for(const [k,x] of cur){const p=MP.xprev.get(k);if(p===undefined)continue;const dd=(x-p)/n;if(dd!==0&&Math.abs(dd)<=40)v.push([k.split('\u0001'),dd]);}
   MP.xprev=cur;MP.xv=v;MP.xage=0;}
 function mpXStep(b){if(!MP.xv||MP.xage>=4)return;MP.xage++;for(const [p,dd] of MP.xv){let o=b;for(let i=0;i<p.length-1&&o;i++)o=o[p[i]];const k=p[p.length-1];if(o&&typeof o==='object'&&typeof o[k]==='number')o[k]+=dd;}}
-function mpClientBoss(){const b=boss;if(!b)return;b.anim++;if(b.kind==='katavina')mpXStep(b);if(b._tx!==undefined){b.x+=(b._tx-b.x)*.4;b.y+=(b._ty-b.y)*.4;}
+function mpClientBoss(){const b=boss;if(!b)return;b.anim++;mpXStep(b);if(b._tx!==undefined){b.x+=(b._tx-b.x)*.4;b.y+=(b._ty-b.y)*.4;}
   if(!b.dormant)bossChain(b);
   if(b.last&&b.lc&&b.lR&&P&&!P.dead){const c=pc(),dx=c.x-b.lc.x,dy=c.y-b.lc.y,d=Math.hypot(dx,dy)||1,lim=b.lR-10;
     if(d>lim){const k=(b.lt||0)<180?.08:1;P.x+=(dx/d*lim-dx)*k;P.y+=(dy/d*lim-dy)*k;const vn=(P.vx*dx+P.vy*dy)/d;if(vn>0){P.vx-=vn*dx/d;P.vy-=vn*dy/d;}}P.y=Math.min(P.y,GROUND-P.h);}
