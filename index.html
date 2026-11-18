@@ -918,8 +918,8 @@ function updPlayer(){
     p.flying=false;p.x+=p.vx;p.x=clamp(p.x,4,WW-p.w-4);p.y+=p.vy;p.onG=false;if(p.y+p.h>=GROUND){p.y=GROUND-p.h;p.vy=Math.min(0,p.vy);p.onG=true;}if(p.y<0){p.y=0;if(p.vy<0)p.vy=0;}p.jumps=0;p.flight=p.fmax;}
   else{
   p.hover=!st&&!p.onG&&jh&&dn&&p.jumps>=2&&p.flight>0&&!jp; /* 飛行時按下：停在空中，左右速度提升 */
-  if(p.dashT<=0){const tg=((Rk?1:0)-(Lk?1:0))*3*KVM.spd*(p.onG?1:KVM.air)*(p.hover?HOVER_SPD:1)*(typeof wpnHas==='function'&&wpnHas('gun')?GUN_SPD:1)*(p.rageOn&&p.weapon==='sniper'?1.35:1); /* 裝備手槍（不用拿在手上）：移動速度加成 */ /* 狙擊怒氣：移速 1.35 倍 */p.vx+=(tg-p.vx)*(p.onG?.32:p.hover?.22:.16);}
-  if(p.rageOn&&p.weapon==='sniper'&&p.dashT<=0&&frameN%3===0&&Math.abs(p.vx)>.6&&(p.rig||pRig).out)ghosts.push({snap:snapRig((p.rig||pRig).out,'#bcd4ff'),x:p.rx,y:p.ry,ox:pRig.ox,oy:pRig.oy,life:16,max:16}); /* 狙擊怒氣：移動時殘影 */
+  if(p.dashT<=0){const tg=((Rk?1:0)-(Lk?1:0))*3*KVM.spd*(p.onG?1:KVM.air)*(p.hover?HOVER_SPD:1)*(typeof wpnHas==='function'&&wpnHas('gun')?GUN_SPD:1)*(p.rageOn&&(p.weapon==='sniper'||p.weapon==='kunai')?1.35:1); /* 裝備手槍（不用拿在手上）：移動速度加成 */ /* 狙擊怒氣：移速 1.35 倍 */p.vx+=(tg-p.vx)*(p.onG?.32:p.hover?.22:.16);}
+  if(p.rageOn&&(p.weapon==='sniper'||p.weapon==='kunai')&&p.dashT<=0&&frameN%3===0&&Math.abs(p.vx)>.6&&(p.rig||pRig).out)ghosts.push({snap:snapRig((p.rig||pRig).out,'#bcd4ff'),x:p.rx,y:p.ry,ox:pRig.ox,oy:pRig.oy,life:16,max:16}); /* 狙擊怒氣：移動時殘影 */
   if(jp){if(p.onG){p.vy=-6.8;p.onG=false;p.jumps=1;SFX.jump();part(c.x,p.y+p.h,8,'#ffffff',1.2,16);}
     else if(p.jumps<2){p.vy=-6.2;p.jumps=2;SFX.jump();ring(c.x,p.y+p.h,'#ffffff');}}
   p.flying=false;
@@ -1012,11 +1012,12 @@ function updPlayer(){
       if(q.stop!=null){q.v=0;q.stop--;q.life=Math.min(q.life,q.stop);}else{q.v=q.v0*Math.min(1,Math.max(.1,(q.rng-q.d)/110));q.d+=q.v;q.x+=Math.cos(q.a)*q.v;q.y+=Math.sin(q.a)*q.v;q.life=Math.max(q.life-1,13);if(q.d>=q.rng-1){q.stop=12;q.life=12;}}}
     else{q.x+=Math.cos(q.a)*q.v;q.y+=Math.sin(q.a)*q.v;q.v*=.985;q.life--;}
     if(frameN%2===0)parts.push({x:q.x+rnd(-8,8),y:q.y+rnd(-8,8),vx:-Math.cos(q.a)*.6,vy:-Math.sin(q.a)*.6,life:16,max:16,col:Math.random()<.5?'#ffffff':'#bcd4ff',size:1});
+    if(q.rem)continue; /* 別人的劍氣：只畫 */
     if(KV_MOBS.length){q.mh=q.mh||new Set();kvMobsSeg([q.x-Math.cos(q.a)*q.v,q.y-Math.sin(q.a)*q.v],[q.x,q.y],q.r*.6,q.dmg||46,q.mh);}
     if(kvCpAlive(boss)){q.ch=q.ch||new Set();kvCpSeg([q.x-Math.cos(q.a)*q.v,q.y-Math.sin(q.a)*q.v],[q.x,q.y],q.r*.6,q.dmg||46,q.ch);} /* 劍氣打柱子 */
     if(!q.hit&&boss&&!boss.dead&&!boss.hidden&&!kvCpInv(boss)){const hb=bossHurt(boss);if(ptSeg(q.x,q.y,hb.a[0],hb.a[1],hb.b[0],hb.b[1])<hb.r+q.r*.7){q.hit=true;playerHitsBoss(Math.round((q.dmg||46)*(q.cl?1:KAT_QK)),q.x,q.y,rnd(0,TAU)); /* 劍氣斬線方向隨機 */}}}
   pqi=pqi.filter(q=>q.life>0);
-  for(const q of pshots){q.px=q.x;q.py=q.y;q.x+=q.vx;q.y+=q.vy;q.life--;if(q.y>GROUND)q.life=0;if(q.life>0&&KV_MOBS.length&&kvMobsSeg([q.px,q.py],[q.x,q.y],2,10,null,.5))q.life=0; /* 子彈擊退減半 */if(q.life>0&&kvCpSeg([q.px,q.py],[q.x,q.y],2,10,null))q.life=0; /* 子彈打柱子 */
+  for(const q of pshots){q.px=q.x;q.py=q.y;q.x+=q.vx;q.y+=q.vy;q.life--;if(q.y>GROUND)q.life=0;if(q.rem)continue; /* 別人的子彈：只畫 */if(q.life>0&&KV_MOBS.length&&kvMobsSeg([q.px,q.py],[q.x,q.y],2,10,null,.5))q.life=0; /* 子彈擊退減半 */if(q.life>0&&kvCpSeg([q.px,q.py],[q.x,q.y],2,10,null))q.life=0; /* 子彈打柱子 */
     if(q.life>0&&boss&&!boss.dead&&!boss.hidden&&!kvCpInv(boss)){const hb=bossHurt(boss);if(segDist([q.px,q.py],[q.x,q.y],hb.a,hb.b)<hb.r+2){q.life=0;playerHitsBoss(10,q.x,q.y,Math.atan2(q.vy,q.vx)+Math.PI/2,true);}}}
   pshots=pshots.filter(q=>q.life>0);
 }
@@ -3964,7 +3965,7 @@ function mpHostMsg(c,d){if(!d)return;
     if(MP.started&&state==='fight'&&boss){const add=Math.round((boss.kind==='katavina'?20000:13500)*(GAMEDIFF===1?1.5:1));boss.mhp+=add;boss.hp+=add;boss.ghostHp=Math.max(boss.ghostHp||0,boss.hp);c.send({t:'start',n:MP.players.length,bi:MP.bi||0,df:GAMEDIFF,re:1});} /* 輸入房號中途加入：直接進戰鬥，Boss 多一份血量 */
     return;}
   if(d.t==='male'){const p=MP.players.find(q=>q.id===c.peer);if(p){p.male=!!d.male;mpBroadcastLobby();mpUI();}return;}
-  if(d.t==='st'){MP.rs[c.peer]=d.s;MP.view[c.peer]=d.s;return;}
+  if(d.t==='st'){if(d.s&&d.s.ev){try{mpSpawnFx(d.s.ev,c.peer);}catch(e){}const A=(MP.evA=MP.evA||{})[c.peer]=(MP.evA[c.peer]||[]);for(const x of d.s.ev)if(A.length<160)A.push(x);delete d.s.ev;}MP.rs[c.peer]=d.s;MP.view[c.peer]=d.s;return;}
   if(d.t==='chat'){mpChatLocal(d.s,d.x);for(const id in MP.conns)if(id!==c.peer)mpSendTo(id,d);return;}
   if(d.t==='ctrHit'){if(boss&&boss.counter>0){MP.hitter=c.peer;mirrorCounter(boss);MP.hitter=null;}return;}
   if(d.t==='pheal'){if(d.to==='h')mpGetHeal(d.v);else if(MP.conns[d.to])mpSendTo(d.to,d);return;} /* 治癒球：補到房主，或轉給目標玩家 */
@@ -4024,7 +4025,23 @@ function mpStartLocal(n,bi,re){if(!re)MP.graves=[];else for(const gr of MP.grave
 function mpPStats(){if(!MP.host)return MP.ps||{};const o={h:[stats.parries|0,stats.deaths|0]};for(const id in MP.rs){const r=MP.rs[id];if(r)o[id]=[r.pa|0,r.de|0];}return o;} /* 多人：每位玩家的格擋、死亡次數（房主彙整後廣播） */
 function mpPCmds(){if(!MP.host)return MP.pc||{};const o={h:winCmds()};for(const id in MP.rs){const r=MP.rs[id];if(r&&r.cm)o[id]=r.cm;}return o;} /* 多人：每位玩家用過的指令（房主彙整後廣播，所有人都看得到） */
 function mpMyState(){const p=P;return {pa:stats.parries|0,de:stats.deaths|0,cm:winCmds(),x:r1(p.x),y:r1(p.y),vx:r1(p.vx),vy:r1(p.vy),f:p.face,g:p.onG?1:0,fl:p.flying?1:0,rp:r1(p.runPh||0),w:p.weapon==='katana'?0:p.weapon==='gun'?1:p.weapon,la:r2(p.gunLA||0),rc:r1(p.recoil||0),
-  sh:p.sheathed?1:0,st:p.sheatheT||0,pt:p.parryT||0,dt:p.dashT||0,sw:p.sw?1:0,sl:r2(p.swLA||0),bl:r1(p.bladeL||44),hp:Math.round(p.hp),mh:p.mhp,d:p.dead?1:0,c:MP.me.slot,m:MP.me.male?1:0,a:mouse.l?1:0,j:p.jumps||0,i:p.iframes||0,dd:p.dead?(p.deadT||0):0};}
+  sh:p.sheathed?1:0,st:p.sheatheT||0,pt:p.parryT||0,dt:p.dashT||0,sw:p.sw?1:0,sl:r2(p.swLA||0),bl:r1(p.bladeL||44),hp:Math.round(p.hp),mh:p.mhp,d:p.dead?1:0,c:MP.me.slot,m:MP.me.male?1:0,a:mouse.l?1:0,j:p.jumps||0,i:p.iframes||0,dd:p.dead?(p.deadT||0):0,ev:mpCollectFx()};}
+/* 多人：把自己新產生的攻擊（飛刀／法杖／狙擊／治癒球／劍氣／手槍子彈）送給其他人，對方只畫不算傷害 */
+const MP_FXSKIP=new Set(['hs','tg','stick','holed','holeZ','ref','ws','mh','ch','__ms','rem','own','lock','lockT','hitP','tr','dmg']);
+function mpSerFx(q){const o={};for(const k in q){if(MP_FXSKIP.has(k))continue;const v=q[k];if(typeof v==='number'){if(isFinite(v))o[k]=Math.round(v*100)/100;}else if(typeof v==='boolean'||typeof v==='string')o[k]=v;}if(q.tr){o.tr=1;if(q.tr.length)o.t0=[Math.round(q.tr[0][0]),Math.round(q.tr[0][1])];}return o;}
+function mpCollectFx(){if(!MP.on)return undefined;const out=[];for(const [L,tg] of [[PWP,'w'],[pqi,'q'],[pshots,'s']])for(const q of L){if(q.__ms||q.rem||q.cl||q.life<=0)continue;if(q.pre>0)continue;if(tg==='w'&&(q.k==='ctgt'||q.k==='ccirc'))continue;q.__ms=1;if(out.length<80){const o=mpSerFx(q);o._L=tg;out.push(o);}}for(const t of PWT){if(t.__ms||t.rem)continue;t.__ms=1;if(t.pts&&t.pts.length>1&&out.length<80)out.push({_L:'t',pts:[t.pts[0],t.pts[t.pts.length-1]].map(p=>[Math.round(p[0]),Math.round(p[1])])});}return out.length?out:undefined;} /* 太快就消失的狙擊彈道：直接送拖尾 */
+function mpSpawnFx(list,own){if(!list||!Array.isArray(list)||state!=='fight')return;for(const o of list){if(!o||typeof o!=='object')continue;const q=Object.assign({},o);q.rem=true;q.own=own;const L=q._L;delete q._L;if(o.tr)q.tr=o.t0&&q.k==='snipe'?[o.t0,[q.x,q.y]]:[[q.x,q.y]];else delete q.tr;delete q.t0;q.dmg=0;if(L==='w'){q.pre=0;PWP.push(q);}else if(L==='q'){q.hit=true;pqi.push(q);}else if(L==='s')pshots.push(q);else if(L==='t'&&Array.isArray(o.pts))PWT.push({pts:o.pts,life:30,max:30,hold:6,rem:true,ws:[0,1,2].map(()=>({sd:Math.random()<.5?-1:1,dr:rnd(4,9),bk:rnd(6,14),am:rnd(2,4.5),fq:rnd(.01,.022),ph:rnd(0,TAU),sp:rnd(.6,1.4)}))});}}
+/* 別人的攻擊：只做移動與外觀（不打傷害、不追蹤） */
+function wpnRemStep(q){const k=q.k;
+  if(k==='slaser'||k==='ccirc'||k==='ctgt'||k==='sbig')return;
+  if(k==='sring'){if(q.tx!=null){const e=1-q.life/q.max,ez=1-Math.pow(1-e,3);q.x=lerp(q.sx,q.tx,ez);q.y=lerp(q.sy,q.ty,ez);}return;}
+  if(k==='islash'){q.x+=Math.cos(q.a)*q.v;q.y+=Math.sin(q.a)*q.v;q.v*=.84;q.tr&&(q.tr.push([q.x,q.y]),q.tr.length>7&&q.tr.shift());return;}
+  if(k==='scirc'){const o=MP.robj&&MP.robj[q.own];if(o&&P){q.x=o.x+P.w/2+q.ox;q.y=Math.min(o.y+P.h/2+q.oy,GROUND-10);}return;}
+  if(k==='swave'){const S=WPN_ST.staff,ca=Math.cos(q.a),sa=Math.sin(q.a);if(q.stop!=null){q.stop--;q.life=Math.max(0,q.stop);return;}const v=S.waveSpd*Math.min(1,Math.max(.1,(S.laserL-(q.d||0))/140));q.x+=ca*v;q.y+=sa*v;q.d=(q.d||0)+v;if(q.d>=S.laserL-1)q.stop=12;return;}
+  if(q.stick){if(q.life>KUN_STICK)q.life=KUN_STICK;q.st=(q.st||0)+1;return;}
+  if(k==='kunai'){const S=WPN_ST.kunai;if(q.stop!=null){q.stop--;q.vx=q.vy=0;if(q.stop<=0)q.life=0;if(q.tr&&q.tr.length>1)q.tr.shift();return;}const left=S.range-(q.dist||0),sp=S.spd*Math.min(1,Math.max(.12,left/S.slow)),cur=Math.hypot(q.vx,q.vy)||1;q.vx*=sp/cur;q.vy*=sp/cur;q.dist=(q.dist||0)+sp;if(q.dist>=S.range-1.5){q.stop=12;q.sa=Math.atan2(q.vy,q.vx);}}
+  q.x+=q.vx;q.y+=q.vy;if(k==='kunai')q.trav=(q.trav||0)+Math.hypot(q.vx,q.vy);if(q.tr){q.tr.push([q.x,q.y]);const n=k==='kunai'?20:k==='snipe'?80:k==='heal'?16:8;if(q.tr.length>n)q.tr.shift();}
+  if(q.y>GROUND||q.x<0||q.x>WW){if(k==='kunai'){q.stick={tg:null};q.y=Math.min(q.y,GROUND);q.st=0;q.sa=Math.atan2(q.vy,q.vx);}else{if(k==='snipe'&&q.y>GROUND&&q.py<=GROUND)snFloorHit(q);q.life=0;}}}
 
 // ---------- 房主：Boss 目標切換（以代理物件暫代 P） ----------
 function mpAlive(id){if(id==='h')return P&&!P.dead;const s=MP.rs[id];return !!(s&&!s.d);}
@@ -4063,7 +4080,7 @@ function mpSnap(){const o={t:'snap',tk:MP.tick};
   if(boss&&boss.kind==='katavina'){const tg=a=>{if(a)for(const q of a)if(q&&q.__i==null)q.__i=MP.oid=(MP.oid||0)+1;};tg(boss.dIn);if(boss.bh)tg(boss.bh.parts);if(boss.cb)tg(boss.cb.parts);tg(KV_DEBRIS);} /* 粒子／碎片編號：成員端本地模擬、用編號接續 */
   if(boss&&boss.kind==='katavina')o.kv=JSON.stringify({cps:KV_CORPSE,pl:PLATS,mobs:KV_MOBS,rk:KV_RK,sh:KV_SHARDS,wr:KV_CP_WRECK,cd:KV_CH_DROP,db:KV_DEBRIS,pdk:KV_PDK,mol:KV_MOBOL},mpRep); /* 卡塔薇娜：場上物件／特效狀態 */
   o.q=JSON.stringify(MP.q);MP.q={sfx:[],gh:[],rs:[]};
-  o.pl=[{id:'h',s:mpMyState()}].concat(Object.keys(MP.rs).map(id=>({id,s:MP.rs[id]})));
+  o.pl=[{id:'h',s:mpMyState()}].concat(Object.keys(MP.rs).map(id=>{const ev=MP.evA&&MP.evA[id];if(ev)delete MP.evA[id];return {id,s:ev&&ev.length?Object.assign({},MP.rs[id],{ev}):MP.rs[id]};}));
   o.m=mirror?{t:mirror.t,broken:mirror.broken,x:mirror.x,force:mirror.force}:null;o.it=introT;o.mu=[music.song,music.sec];o.tg=MP.tgt;o.tot=MP.total;o.ps=mpPStats();o.pc=mpPCmds();o.ad=MP.allDeadT||0;o.fl=flash>.15&&flashCol!=='200,30,50'?[r2(flash),flashCol]:null;
   return o;}
 function mpApplySnap(o){if(state!=='fight'||!boss)return;MP.rtk=o.tk;if(o.tk!=null){if(MP.clk==null||o.tk>MP.clk||MP.clk-o.tk>30)MP.clk=o.tk;else MP.clk+=(o.tk-MP.clk)*.02;MP.lead=Math.max(0,Math.min(8,Math.round(MP.clk-o.tk)));} /* 估計房主「現在」的幀號：晚到的快照往前推到現在 */
@@ -4087,7 +4104,7 @@ function mpApplySnap(o){if(state!=='fight'||!boss)return;MP.rtk=o.tk;if(o.tk!=nu
   if(o.kv){const D1=new Map(),oDb=KV_DEBRIS;mpSWalk(kvSRoot(),'',0,D1,KV_SSKIP);kvMpApply(JSON.parse(o.kv,mpRev));KV_DEBRIS=mpIdMerge(oDb,KV_DEBRIS,MP.deadI=MP.deadI||new Set());mpSPrep(MP.sK=MP.sK&&MP.sK.b===boss?MP.sK:{b:boss},D1,kvSRoot(),KV_SSKIP);}
   if(o.m&&mirror)Object.assign(mirror,o.m);introT=o.it;if(o.fl){flash=Math.max(flash,o.fl[0]);flashCol=o.fl[1];}
   if(o.mu&&(o.mu[0]!==music.song||o.mu[1]!==music.sec))setMusic(o.mu[0],o.mu[1]);MP.tgt=o.tg==='h'?'h':o.tg;MP.total=o.tot||{};MP.ps=o.ps||{};MP.pc=o.pc||{};MP.allDeadT=o.ad||0;
-  const seen=new Set();for(const e of o.pl){if(e.id===MP.myId)continue;seen.add(e.id);MP.view[e.id]=e.s;}
+  const seen=new Set();for(const e of o.pl){if(e.id===MP.myId)continue;seen.add(e.id);if(e.s&&e.s.ev){try{mpSpawnFx(e.s.ev,e.id);}catch(err){}}MP.view[e.id]=e.s;}
   for(const id in MP.view)if(!seen.has(id)){delete MP.view[id];delete MP.robj[id];}}
 // 成員端：不跑 AI，只把房主的 Boss 狀態平滑套上
 /* 多人成員：兩次快照之間，用上兩次快照的變化量把 Boss 身上的數值（動畫幀、計時、位置、旋轉…）每幀往前推，動畫才會是 60 幀 */
@@ -4323,7 +4340,7 @@ function wpnHas(id){return LOADOUT.a===id||LOADOUT.b===id;}
 function wpnBookHeal(p){if(p.bookCD>0||p.dead)return;if(p.hp>=p.mhp)return;healFxSet(p,24,36,60);const c=pc(),hl=Math.min(Math.round(p.mhp*.3),p.mhp-p.hp);p.hp+=hl;p.bookCD=noPotCD?0:2700;if(p===P)stats.books++;pop(c.x,p.y-10,'+'+hl,'#8cffb0');SFX.heal();part(c.x,c.y,24,'#8cffb0',1.6,40);}
 // 數值（各武器 DPS 調成差不多，見訓練場）
 const KAT_MK=1.087,KAT_QK=.84; /* 近戰：近身 70%／劍氣 30% */
-const WPN_ST={staff:{cd:15,dmg:15,spd:5.95, /* 魔彈射速 -30% */life:90,turn:.12,laser:10,laserL:520,waveCD:30,waveDmg:45, /* 大法陣光波 DPS 約 90 */waveSpd:26,waveH:64,waveLen:120},kunai:{cd:4,dmg:6,spd:16.8,turn:.5,range:400,slow:90,seek:250,seekN:25, /* 平常追蹤範圍減半 */lockSpd:1.3,lockT:240,backR:300},sniper:{cd:50,dmg:85, /* DPS 約 100 */spd:110,life:16} /* 彈道加速（射程不變） */,book:{cd:24,heal:1,spd:12.25,life:240}};
+const WPN_ST={staff:{cd:15,dmg:15,spd:5.95, /* 魔彈射速 -30% */life:90,turn:.12,laser:10,laserL:520,waveCD:30,waveDmg:45, /* 大法陣光波 DPS 約 90 */waveSpd:26,waveH:64,waveLen:120},kunai:{cd:4,dmg:6.67, /* DPS 約 100 */spd:16.8,turn:.5,range:400,slow:90,seek:250,seekN:25, /* 平常追蹤範圍減半 */lockSpd:1.3,lockT:240,backR:300},sniper:{cd:50,dmg:85, /* DPS 約 100 */spd:110,life:16} /* 彈道加速（射程不變） */,book:{cd:24,heal:1,spd:12.25,life:240}};
 const WPN_MZ={gun:14,staff:22,kunai:7,sniper:34,book:7}; /* 槍口／法杖頭／手持點到手的距離 */
 let PWP=[]; /* 新武器的投射物 */
 const wpnMouse=()=>({x:VX0+mouse.x/VZ,y:VY0+mouse.y/VZ});
@@ -4385,7 +4402,7 @@ function wpnKunAim(q,t){if(!t.a)return t; /* 飛刀：在目標碰撞箱裡、�
 function wpnNearPt(x,y,TT){const T=TT||wpnTargets();let best=null,bd=1e9;for(const t of T){const d=Math.hypot(t.x-x,t.y-y);if(d<bd){bd=d;best=t;}}return best;} /* 飛刀：各自追離自己最近的目標 */
 let PWT=[],STAFF_MODE=0;const SN_MAG=12,SN_RELOAD=80; /* 法杖攻擊方式：0＝魔彈＋身後法陣雷射，1＝前方大法陣光波，2＝召喚分身 */ /* 狙擊槍子彈消失後留下的拖尾 */
 function wpnFire(p,st,aim){const S=WPN_ST[p.weapon];let dbl=false;if(p.snDblT>0){if(p.weapon!=='sniper')p.snDblT=0;else if(--p.snDblT===0)dbl=true;} /* 狙擊連開第二槍 */if(!S||st||(!mouse.l&&!dbl)||(p.fireCD>0&&!dbl)||p.parryT>0||p.swapT>0)return;
-  const mz=p.muzzleW||[p.rx,p.ry-31*PS];p.fireCD=Math.round(S.cd*(p.rageOn&&p.weapon!=='sniper'?.7:1)); /* 狙擊怒氣不加攻速 */p.combatT=0;
+  const mz=p.muzzleW||[p.rx,p.ry-31*PS];p.fireCD=Math.round(S.cd*(p.rageOn&&p.weapon!=='sniper'&&p.weapon!=='kunai'?.7:1)); /* 狙擊／飛刀怒氣不加攻速 */p.combatT=0;
   if(p.weapon==='staff'){p.staffN=(p.staffN||0)+1;p.recoil=1.2;
     if(STAFF_MODE===2){p.fireCD=24;if(!cloneSummon(p,mz,aim)){cloneDesignate();p.fireCD=20;}} /* 方式三：左鍵在準星處召喚分身；滿了就指定攻擊目標 */
     else if(STAFF_MODE===1){p.fireCD=Math.round(S.waveCD*(p.rageOn?.7:1)); /* 第二種：前方大法陣＋光波（攻速較慢） */
@@ -4478,10 +4495,12 @@ function wpnStep(){cloneStep();const tgt=PWP.length?wpnNearCursor():null,KT=PWP.
     else if(P.weapon==='sniper'&&pressed['r']&&P.snAmmo<SN_MAG&&!(typeof KV_CHAIR_ON!=='undefined'&&KV_CHAIR_ON&&boss&&boss.kind==='katavina')){P.snReload=SN_RELOAD;SFX.reload&&SFX.reload();}}
   if(P){const KM=P.kunM=P.kunM||{v:0,act:false,buf:0,last:-999}; /* 飛刀追蹤條：持續命中最快 3 秒集滿；集滿後 3 秒內衰減，期間會追蹤；超過 3 秒沒命中快速衰減 */
     const gn=Math.min(KM.buf,1/180);KM.buf-=gn;
-    if(KM.act){KM.v-=1/240;KM.buf=0; /* 飛刀條集滿後持續 4 秒（原 3 秒） */if(KM.v<=0){KM.v=0;KM.act=false;}}
+    if(P.rageOn&&P.weapon==='kunai')KM.act=true; /* 飛刀怒氣：保持追蹤型態，飛刀條不消耗 */
+    if(KM.act){if(!(P.rageOn&&P.weapon==='kunai'))KM.v-=1/240;KM.buf=0; /* 飛刀條集滿後持續 4 秒（原 3 秒） */if(KM.v<=0){KM.v=0;if(!(P.rageOn&&P.weapon==='kunai'))KM.act=false;}}
     else{KM.v=Math.min(1,KM.v+gn);if(KM.v>=1){KM.act=true;SFX.glint&&SFX.glint();}else if(frameN-KM.last>180)KM.v=Math.max(0,KM.v-1/30);}}if(P&&P.kunPose&&P.kunPose.t>-99)P.kunPose.t--;
   for(const q of PWT){if(q.hold>0)q.hold--;else q.life--;}PWT=PWT.filter(q=>q.life>0);
   for(const q of PWP){q.px=q.x;q.py=q.y;q.life--;q.t=(q.t||0)+1;
+    if(q.rem){wpnRemStep(q);continue;}
     if(q.k==='slaser')continue;
     if(q.k==='sring'){if(q.tx!=null){const e=1-q.life/q.max,ez=1-Math.pow(1-e,3);q.x=lerp(q.sx,q.tx,ez);q.y=lerp(q.sy,q.ty,ez);}else{q.x+=q.vx;q.y+=q.vy;q.vx*=.82;q.vy*=.82;}continue;}
     if(q.k==='ccirc'||q.k==='ctgt')continue;
@@ -4520,7 +4539,7 @@ function wpnStep(){cloneStep();const tgt=PWP.length?wpnNearCursor():null,KT=PWP.
         else{const tg=q.tg&&!q.tg.dead?q.tg:null;q.stick={tg,ox:tg?q.x-tg.x:0,oy:tg?q.y-tg.y:0};}q.st=0;part(q.x,q.y,6,'#bcd4ff',2,12,1);
         if(q.stick.tg){const on=PWP.filter(o=>o.k==='kunai'&&o.stick&&o.stick.tg===q.stick.tg&&o.life>0);for(let i=0;i<on.length-KUN_MAXSTUCK;i++)on[i].life=0;}} /* 同一目標上最多插 10 把，多的從最早插上的移除 */
       else{q.life=0;part(q.x,q.y,10,'#d8b8ff',2.4,16,1);}}}
-  for(const q of PWP)if(q.k==='snipe'&&q.life<=0&&q.tr&&q.tr.length>1)PWT.push({pts:q.tr,life:30,max:30,hold:6, /* 先停 0.1 秒才開始消散 */ws:[0,1,2].map(()=>({sd:Math.random()<.5?-1:1,dr:rnd(4,9),bk:rnd(6,14),am:rnd(2,4.5),fq:rnd(.01,.022),ph:rnd(0,TAU),sp:rnd(.6,1.4)}))}); /* 子彈消失後拖尾慢慢淡出 */
+  for(const q of PWP)if(q.k==='snipe'&&q.life<=0&&q.tr&&q.tr.length>1)PWT.push({__ms:q.__ms||q.rem,pts:q.tr,life:30,max:30,hold:6, /* 先停 0.1 秒才開始消散 */ws:[0,1,2].map(()=>({sd:Math.random()<.5?-1:1,dr:rnd(4,9),bk:rnd(6,14),am:rnd(2,4.5),fq:rnd(.01,.022),ph:rnd(0,TAU),sp:rnd(.6,1.4)}))}); /* 子彈消失後拖尾慢慢淡出 */
   PWP=PWP.filter(q=>q.life>0);}
 function wpnSnipeExit(q){const a=Math.atan2(q.vy,q.vx);let hp=q.hitP;
   if(!hp){const A_=[q.px,q.py],B_=[q.x,q.y],cs=[];if(typeof KV_MOBS!=='undefined')for(const m of KV_MOBS)cs.push([m.x,m.y]);if(boss&&boss.cp)for(const p of boss.cp)cs.push([p.x,p.y]);let bd=1e9;for(const c of cs){const d=segDist(A_,B_,c,c);if(d<bd){bd=d;const dx=B_[0]-A_[0],dy=B_[1]-A_[1],l2=dx*dx+dy*dy||1,u=clamp(((c[0]-A_[0])*dx+(c[1]-A_[1])*dy)/l2,0,1);hp=[A_[0]+dx*u,A_[1]+dy*u];}}if(bd>80)hp=null;} /* 打到菁英怪／柱子：找彈道上離它最近的點 */
