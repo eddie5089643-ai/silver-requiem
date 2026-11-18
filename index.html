@@ -2140,11 +2140,14 @@ function kvLaserParry(b,l){const c=pc(),pf=P.parryT>=8,co=kvCore(b);l.parried=tr
   l.ref={x:c.x,y:c.y,t:0};
   ring(co.x,co.y,'#ffd34a',6,30);part(co.x,co.y,30,'#ffe9a8',3.5,30,2);b.hurtF=8;kvStunAdd(b,kvCpAlive(b)?.4:.2);} /* 柱子破壞前 +2/5 格，之後 +1/5 格 */
 function kvOrbNew(o,tx,ty){SFX.shot&&SFX.shot();return {x0:o.x,y0:o.y,x:o.x,y:o.y,tx,ty,t:0,tr:[],las:[]};}
-function kvBeamLine(l,tele,fire){const ex=l.x+Math.cos(l.a)*6000,ey=l.y+Math.sin(l.a)*6000,W_=l.w||1,so=kvStarOn()&&!l.gold,C1=l.gold?'#ffe066':so?'#c46aff':'#ffffff',C2=l.gold?'#ffc83a':so?'#9a3aff':'#d8c8ff';
+function kvBeamLine(l,tele,fire,soft){const ex=l.x+Math.cos(l.a)*6000,ey=l.y+Math.sin(l.a)*6000,W_=l.w||1,so=kvStarOn()&&!l.gold,C1=l.gold?'#ffe066':so?'#c46aff':'#ffffff',C2=l.gold?'#ffc83a':so?'#9a3aff':'#d8c8ff';
   if(l.ref&&l.ref.t<16&&boss){const co=kvCore(boss),k=1-l.ref.t/16;gg.save();gg.globalAlpha=.8*k;gg.strokeStyle='#ffc83a';gg.lineWidth=10*k;gg.beginPath();gg.moveTo(l.ref.x,l.ref.y);gg.lineTo(co.x,co.y);gg.stroke();gg.restore();g.save();g.globalAlpha=k;g.strokeStyle='#fff6d0';g.lineWidth=2.5*k+.5;g.beginPath();g.moveTo(l.ref.x,l.ref.y);g.lineTo(co.x,co.y);g.stroke();g.restore();} /* 彈回的雷射：打到 Boss 核心就停（不穿透） */
   if(l.parried&&l.t>=tele)return; /* 星空期間：雷射和預警線改成輪廓的紫色 */
   if(l.t<tele){g.save();g.globalAlpha=Math.min(1,(l.gold?.6:so?.5:.3)+.4*l.t/tele);g.strokeStyle=C1;g.lineWidth=W_>1||l.gold?2:1;g.beginPath();g.moveTo(l.x,l.y);g.lineTo(ex,ey);g.stroke();g.restore();}
-  else if(l.t<tele+fire+4){const k=l.t<tele+fire?1:1-(l.t-tele-fire)/4;g.save();g.globalAlpha=k;g.strokeStyle=C1;g.lineWidth=(2.2*k+.5)*W_;g.beginPath();g.moveTo(l.x,l.y);g.lineTo(ex,ey);g.stroke();g.restore();
+  else if(soft&&l.t<tele+fire+6){const k=l.t<tele+fire?1:1-(l.t-tele-fire)/6,rgb=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16)).join(','),c1=rgb(C1),c2=rgb(C2),hw=(3.2*k+1)*W_,L=6000; /* 皇女連射雷射：加粗、外邊漸層光暈（沒有切線） */
+    g.save();g.translate(l.x,l.y);g.rotate(l.a);g.globalCompositeOperation='lighter';g.globalAlpha=k;const R0=hw*4;let gr=g.createLinearGradient(0,-R0,0,R0);gr.addColorStop(0,`rgba(${c2},0)`);gr.addColorStop(.28,`rgba(${c2},.5)`);gr.addColorStop(.42,`rgba(${c1},1)`);gr.addColorStop(.58,`rgba(${c1},1)`);gr.addColorStop(.72,`rgba(${c2},.5)`);gr.addColorStop(1,`rgba(${c2},0)`);g.fillStyle=gr;g.fillRect(0,-R0,L,R0*2);g.restore();
+    gg.save();gg.translate(l.x,l.y);gg.rotate(l.a);gg.globalAlpha=.65*k;const R1=hw*6.5;gr=gg.createLinearGradient(0,-R1,0,R1);gr.addColorStop(0,`rgba(${c2},0)`);gr.addColorStop(.35,`rgba(${c2},.45)`);gr.addColorStop(.5,`rgba(${c2},1)`);gr.addColorStop(.65,`rgba(${c2},.45)`);gr.addColorStop(1,`rgba(${c2},0)`);gg.fillStyle=gr;gg.fillRect(0,-R1,L,R1*2);gg.restore();}
+  else if(!soft&&l.t<tele+fire+4){const k=l.t<tele+fire?1:1-(l.t-tele-fire)/4;g.save();g.globalAlpha=k;g.strokeStyle=C1;g.lineWidth=(2.2*k+.5)*W_;g.beginPath();g.moveTo(l.x,l.y);g.lineTo(ex,ey);g.stroke();g.restore();
     gg.save();gg.globalAlpha=.7*k;gg.strokeStyle=C2;gg.lineWidth=7*k*Math.sqrt(W_)*1.4;gg.beginPath();gg.moveTo(l.x,l.y);gg.lineTo(ex,ey);gg.stroke();gg.restore();}}
 /* KVDEATH */
 /* ===== 卡塔薇娜死亡動畫（約 28 秒）：暈眩 → 皇女向上飛走傳送消失 → 本體發抖越來越亮、四周吸入紫色粒子、周圍扭曲 → 五道射光輪流穿出 → 強光畫面全白 → 粒子飄落、光源照出玩家影子（丁達爾） ===== */
@@ -2240,7 +2243,7 @@ let KV_CIRP=null;function kvCirP(){if(KV_CIRP||!KV_CIRW.complete)return KV_CIRP;
 function kvPaDraw(a){if(!a.os||!KV_CIRW.complete)return;const CIR=kvStarOn()?kvCirP():KV_CIRW; /* 星空期間：法陣改成紫色 */const op=Math.min(1,a.t/KV_PA_OPEN),cl=a.close?1-a.close/16:1,sz=92*(1-Math.pow(1-op,3))*cl;
   if(sz>1)for(const o of a.os){g.save();g.translate(o.x,o.y);g.rotate(o.aim);g.scale(.3,1);g.rotate(a.t*.08);g.globalAlpha=Math.min(1,op*1.4)*cl;g.imageSmoothingEnabled=false;g.drawImage(CIR||KV_CIRW,-sz/2,-sz/2,sz,sz);g.restore();
     gg.globalAlpha=.45*cl*op;gg.drawImage(soft(sz*.4,kvStarOn()?'rgba(180,90,255,.9)':'rgba(235,225,255,.9)'),o.x-sz*.4,o.y-sz*.4);gg.globalAlpha=1;}
-  if(a.kind==='laser8')for(const l of a.las)kvBeamLine(l,KV_L8_TELE,8);
+  if(a.kind==='laser8')for(const l of a.las)kvBeamLine(l,KV_L8_TELE,8,true);
   else if(a.kind==='laser')for(const l of a.las)kvBeamLine(l,KV_PA_TELE,10);
   else if(a.kind==='bomb'){for(const q of a.orbs||[]){if(!q.done&&kvStarOn()){g.save();g.strokeStyle='#d08cff';g.lineWidth=1.5;g.beginPath();g.arc(q.x,q.y,20,0,TAU);g.stroke();g.restore();} /* 星空期間：彈幕球只剩輪廓 */
     else if(!q.done&&KV_ORBW.complete){for(let i=0;i<q.tr.length;i++){const k=(i+1)/q.tr.length,[x,y]=q.tr[i];g.save();g.globalAlpha=k*.35;const s2=34*(.5+.5*k);g.drawImage(KV_ORBW,x-s2/2,y-s2/2,s2,s2);g.restore();} /* 拖尾 */
