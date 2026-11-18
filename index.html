@@ -4531,12 +4531,14 @@ function wpnSnipeHole(q){const a=Math.atan2(q.vy,q.vx),dx=Math.cos(a),dy=Math.si
     const pts=[];const HZ=q.holeZ&&q.holeZ.ref===t.ref?q.holeZ:null;if(HZ){for(let k=-200;k<=200;k+=1){const x=q.x+dx*k,y=q.y+dy*k;if(Math.hypot(x-HZ.x,y-HZ.y)<HZ.r)pts.push([x-t.ref.x,y-t.ref.y]);}if(!pts.length)pts.push([HZ.x-t.ref.x,HZ.y-t.ref.y]);} /* 弱點命中：彈孔優先出現在弱點上 */
     else for(let k=-90;k<=90;k+=1){const x=q.x+dx*k,y=q.y+dy*k;if(ptSeg(x,y,t.a[0],t.a[1],t.b[0],t.b[1])<t.r*.95)pts.push([x-t.ref.x,y-t.ref.y]);}
     q.holed.add(t.ref);if(!pts.length){if(t.ref===boss)fx.push({type:'smark',x:q.x,y:q.y,a:a+Math.PI/2,life:36,max:36,pl:true,sc:.5});continue;}SNH_P.push({ref:t.ref,pts,a:a+Math.PI/2,fx:q.x,fy:q.y});}}
+/* 讀主畫面的像素會讓瀏覽器把整個畫布改成慢速模式（開槍久了掉幀），改成先複製到小畫布再讀 */
+let SN_RB=null,SN_RBX=null;function snReadBox(b){if(!SN_RB){SN_RB=document.createElement('canvas');SN_RBX=SN_RB.getContext('2d',{willReadFrequently:true});}if(SN_RB.width<b[2]||SN_RB.height<b[3]){SN_RB.width=Math.max(SN_RB.width,b[2]);SN_RB.height=Math.max(SN_RB.height,b[3]);}SN_RBX.setTransform(1,0,0,1,0,0);SN_RBX.clearRect(0,0,b[2],b[3]);SN_RBX.drawImage(g.canvas,b[0],b[1],b[2],b[3],0,0,b[2],b[3]);return SN_RBX.getImageData(0,0,b[2],b[3]).data;}
 function wpnHolePre(){if(!SNH_P.length)return;const m=g.getTransform(); /* 畫目標之前：先記下那一塊的畫面 */
   for(const h of SNH_P){const r=h.ref;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;h.px=h.pts.map(p=>{const wx=r.x+p[0],wy=r.y+p[1],X=Math.round(m.a*wx+m.c*wy+m.e),Y=Math.round(m.b*wx+m.d*wy+m.f);x0=Math.min(x0,X);y0=Math.min(y0,Y);x1=Math.max(x1,X);y1=Math.max(y1,Y);return [X,Y];});
     x0=Math.max(0,x0);y0=Math.max(0,y0);x1=Math.min(g.canvas.width-1,x1);y1=Math.min(g.canvas.height-1,y1);h.box=x1>=x0&&y1>=y0?[x0,y0,x1-x0+1,y1-y0+1]:null;
-    if(h.box){try{h.before=g.getImageData(...h.box).data;}catch(e){h.box=null;}}}}
+    if(h.box){try{h.before=snReadBox(h.box);}catch(e){h.box=null;}}}}
 function wpnHolePost(){if(!SNH_P.length)return; /* 畫完目標：有變化的像素＝目標不透明的地方，才留彈孔 */
-  for(const h of SNH_P){if(!h.box||!h.before){if(h.ref===boss)fx.push({type:'smark',x:h.fx,y:h.fy,a:h.a,life:36,max:36,pl:true,sc:.5});continue;}let after;try{after=g.getImageData(...h.box).data;}catch(e){continue;}const [bx,by,bw]=h.box,ok=[];
+  for(const h of SNH_P){if(!h.box||!h.before){if(h.ref===boss)fx.push({type:'smark',x:h.fx,y:h.fy,a:h.a,life:36,max:36,pl:true,sc:.5});continue;}let after;try{after=snReadBox(h.box);}catch(e){continue;}const [bx,by,bw]=h.box,ok=[];
     h.px.forEach((P_,i)=>{const X=P_[0]-bx,Y=P_[1]-by;if(X<0||Y<0||X>=bw||Y>=h.box[3])return;const o=(Y*bw+X)*4;if(Math.abs(after[o]-h.before[o])+Math.abs(after[o+1]-h.before[o+1])+Math.abs(after[o+2]-h.before[o+2])>24)ok.push(i);});
     const isB=h.ref===boss;if(ok.length){const i=ok[(Math.random()*ok.length)|0];SNH.push({ref:h.ref,ox:h.pts[i][0],oy:h.pts[i][1],life:600});if(isB)fx.push({type:'smark',x:h.ref.x+h.pts[i][0],y:h.ref.y+h.pts[i][1],a:h.a,life:36,max:36,pl:true,sc:.5});} /* 命中斬線畫在彈孔上、短一點 */
     else if(isB)fx.push({type:'smark',x:h.fx,y:h.fy,a:h.a,life:36,max:36,pl:true,sc:.5});}
@@ -4546,11 +4548,15 @@ function wpnSnipeHoleDraw(){for(const h of SNH){h.life--;const r=h.ref;if(!r||r.
     g.save();g.globalAlpha=al;g.fillStyle='#ffffff';g.fillRect(Math.round(x)-1,Math.round(y)-1,2,2);g.restore();}
   SNH=SNH.filter(h=>h.life>0);}
 /* 狙擊彈道消失時：一條條向外飄散、輕微扭曲的軌跡（坡度小） */
-function wpnSnipeWisp(pts,ws,e){if(pts.length<2)return;const al=.8*(1-e)*Math.min(1,e*6);if(al<=.01)return;const sm=[];let tot=0;for(let i=1;i<pts.length;i++){const ax=pts[i-1][0],ay=pts[i-1][1],dx=pts[i][0]-ax,dy=pts[i][1]-ay,L=Math.hypot(dx,dy)||1,n=Math.max(1,Math.ceil(L/12));for(let j=0;j<n;j++){const u=j/n;sm.push([ax+dx*u,ay+dy*u,-dy/L,dx/L,tot+L*u]);}tot+=L;}if(sm.length<2)return;
-  for(const c of [gg,g]){c.save();c.lineCap='round';for(const w of ws){c.globalAlpha=c===gg?al*.5:al;c.strokeStyle=c===gg?'#9fc8ff':'#e8f2ff';c.lineWidth=c===gg?3:1.1;c.beginPath();
-    for(let i=0;i<sm.length;i++){const [x,y,nx,ny,d]=sm[i],k=i/(sm.length-1),off=w.sd*w.dr*e*(.4+.6*k)+Math.sin(d*w.fq+w.ph+e*3*w.sp)*w.am*(.3+e);i?c.lineTo(x+nx*off,y+ny*off):c.moveTo(x+nx*off,y+ny*off);}c.stroke();}c.restore();}}
-function wpnSnipeTrail(pts,al){if(pts.length<2)return;const n=pts.length;
-  for(let i=1;i<n;i++){const k=i/n;gg.globalAlpha=al*.55*k;gg.strokeStyle='#9fc8ff';gg.lineWidth=1+3*k;gg.beginPath();gg.moveTo(pts[i-1][0],pts[i-1][1]);gg.lineTo(pts[i][0],pts[i][1]);gg.stroke();
+function wpnSnipeWisp(pts,ws,e){if(pts.length<2)return;const sm=[];let tot=0;for(let i=1;i<pts.length;i++){const ax=pts[i-1][0],ay=pts[i-1][1],dx=pts[i][0]-ax,dy=pts[i][1]-ay,L=Math.hypot(dx,dy)||1,n=Math.max(1,Math.ceil(L/18));for(let j=0;j<n;j++){const u=j/n;sm.push([ax+dx*u,ay+dy*u,-dy/L,dx/L,tot+L*u]);}tot+=L;}const N=sm.length;if(N<2)return;
+  const ek=k=>clamp((e*1.7-k)/.7,0,1); /* 每一段的飄散進度：尾巴先散，往前傳 */
+  g.save();g.lineCap='round';g.strokeStyle='#e8f2ff';g.lineWidth=1;
+  for(const w of ws){let pv=null;for(let i=0;i<N;i++){const [x,y,nx,ny,d]=sm[i],k=i/(N-1),el=ek(k),off=w.sd*w.dr*el+Math.sin(d*w.fq+w.ph+el*3*w.sp)*w.am*el,px=x+nx*off,py=y+ny*off,al=.4*Math.min(1,el*5)*(1-el); /* 透明度減半 */
+      if(pv&&al>.01){g.globalAlpha=al;g.beginPath();g.moveTo(pv[0],pv[1]);g.lineTo(px,py);g.stroke();}pv=[px,py];
+      if(!paused&&el>0&&el<.8&&Math.random()<.05)parts.push({x:px,y:py,vx:nx*w.sd*rnd(.2,.9)+rnd(-.2,.2),vy:ny*w.sd*rnd(.2,.9)+rnd(-.2,.2),life:Math.round(rnd(14,26)),max:26,col:Math.random()<.5?'#ffffff':'#cfe4ff',size:1});}} /* 1 像素粒子飄散 */
+  g.restore();}
+function wpnSnipeTrail(pts,al,cut){if(pts.length<2)return;const n=pts.length;
+  for(let i=1;i<n;i++){const k=i/n;if(cut!=null){const v=clamp((k-cut)/.15+1,0,1);if(v<=0)continue;al=v;} /* 消失：從尾巴往前淡出 */gg.globalAlpha=al*.55*k;gg.strokeStyle='#9fc8ff';gg.lineWidth=1+3*k;gg.beginPath();gg.moveTo(pts[i-1][0],pts[i-1][1]);gg.lineTo(pts[i][0],pts[i][1]);gg.stroke();
     g.globalAlpha=al*k;g.strokeStyle='#ffffff';g.lineWidth=.4+.9*k;g.beginPath();g.moveTo(pts[i-1][0],pts[i-1][1]);g.lineTo(pts[i][0],pts[i][1]);g.stroke();}gg.globalAlpha=1;g.globalAlpha=1;}
 function wpnMagicCircle(x,y,a,sc,al,round){const t=frameN; /* 法陣（跟彈幕同色），sc＝大小；round＝正圓不壓扁 */
   for(const [c,lw,ga] of [[gg,3,.5],[g,1,1]]){c.save();c.translate(x,y);c.rotate(a);c.scale((round?1:.38)*sc,sc);c.globalAlpha=al*ga;c.strokeStyle=c===gg?'#b98cff':'#e6d4ff';c.lineWidth=lw/sc;
@@ -4576,7 +4582,7 @@ function wpnBookCircle(){const p=P;if(!p||!(p.bookFx>0)||!p.muzzleW||!p.handW||p
     c.beginPath();c.arc(0,0,13,0,TAU);c.stroke();c.beginPath();c.arc(0,0,9,0,TAU);c.stroke();c.rotate(-t*.1);c.beginPath();for(let i=0;i<=6;i++){const b=i*TAU*2/6*1.5;c.lineTo(Math.cos(b)*9,Math.sin(b)*9);}c.stroke();
     for(let i=0;i<8;i++){const b=i*TAU/8;c.fillStyle=c.strokeStyle;c.fillRect(Math.cos(b)*11-.7,Math.sin(b)*11-.7,1.4,1.4);}c.restore();}}
 function wpnDraw(){cloneDraw();wpnBookCircle();wpnHolePost();wpnSnipeHoleDraw();if(STAFF_MODE===0)wpnStaffCircle();wpnHexShield();
-  for(const q of PWT){const e=1-q.life/q.max;wpnSnipeTrail(q.pts,Math.max(0,1-e*1.6));if(q.ws)wpnSnipeWisp(q.pts,q.ws,e);}
+  for(const q of PWT){const e=1-q.life/q.max;wpnSnipeTrail(q.pts,1,Math.min(1.2,e*1.7));if(q.ws)wpnSnipeWisp(q.pts,q.ws,e);}
   for(const q of PWP){
   if(q.k==='staff'){gg.save();for(let i=0;i<q.tr.length;i++){const k=i/q.tr.length;gg.globalAlpha=.5*k;gg.drawImage(soft(6+6*k,'rgba(190,140,255,.9)'),q.tr[i][0]-6-6*k,q.tr[i][1]-6-6*k);}gg.globalAlpha=.9;gg.drawImage(soft(12,'rgba(220,190,255,1)'),q.x-12,q.y-12);gg.restore();g.fillStyle='#ffffff';g.fillRect(Math.round(q.x)-2,Math.round(q.y)-2,4,4);}
   else if(q.k==='scirc'){const k=q.life/q.max,al=Math.min(1,(q.max-q.life+1)/5)*Math.min(1,q.life/6);wpnMagicCircle(q.x,q.y,q.a||0,1,al);}
