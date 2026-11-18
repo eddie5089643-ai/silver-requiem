@@ -587,6 +587,7 @@ const SFX={
   clang(perfect){if(!AC)return;const t=AC.currentTime;const m=perfect?1.07:1;
     for(const [fr,a,d] of [[1530,.32,1.1],[2410,.22,.9],[3720,.16,.6],[5230,.1,.45],[760,.14,.7],[7900,.05,.3]])tone(t,fr*m,'sine',a,d*(perfect?1.5:1));
     noise(t,.06,.6,'highpass',2500);noise(t,.3,.15,'bandpass',4000,sfxBus,3);},
+  clangLow(){if(!AC)return;const t=AC.currentTime;for(const [fr,a,d] of [[1530,.32,1.1],[2410,.22,.9],[3720,.16,.6],[5230,.1,.45],[760,.14,.7],[7900,.05,.3]])tone(t,fr*.5,'sine',a,d*1.2);noise(t,.07,.5,'highpass',1200);noise(t,.3,.12,'bandpass',2000,sfxBus,3);}, /* 防禦成功：彈反音效低音版 */
   clangSoft(){if(!AC)return;const t=AC.currentTime;for(const [fr,a,d] of [[1530,.32,1.1],[2410,.22,.9],[3720,.16,.6],[5230,.1,.45],[760,.14,.7],[7900,.05,.3]])tone(t,fr,'sine',a*.5,d);noise(t,.06,.3,'highpass',2500);noise(t,.3,.075,'bandpass',4000,sfxBus,3);}, /* 鏡中銀影擋子彈：音量減半 */
   hurt(){if(!AC)return;const t=AC.currentTime;tone(t,320,'square',.14,.28,null,90);noise(t,.22,.3,'lowpass',1400);},
   stance(){if(!AC)return;const t=AC.currentTime;tone(t,180,'triangle',.07,.62,null,900);tone(t+.1,360,'sine',.05,.52,null,1800);noise(t,.6,.14,'bandpass',1600,sfxBus,2.5);tone(t+.62,2093,'sine',.1,.5);tone(t+.62,3136,'sine',.05,.4);},
@@ -882,8 +883,9 @@ const pShoulder=p=>[p.rx+2.5*PS*p.face,p.ry-31*PS];
 function hurt(d){
   if(P&&P.__rp){const hc=MP.hcd=MP.hcd||{};if((hc[P.__rp]||0)>frameN)return true;hc[P.__rp]=frameN+10;mpSendTo(P.__rp,{t:'hurt',d});return true;}
   if(godMode||P.iframes>0||P.dashT>0||P.dashI>0||P.dead||state!=='fight')return false;
-  const dmg=Math.round(d*D.dmg);P.hp-=dmg;P.iframes=Math.round((boss&&boss.kind==='katavina'&&boss.starFx&&!boss.dead?21:42)*(boss&&boss.kind==='katavina'&&!boss.dead&&boss.tl&&boss.tl.mode==='alone'?2/3:1)); /* 皇女為主期間：受擊無敵時間減三分之一 */stats.hits++; /* 卡塔薇娜星空期間：受擊無敵時間減半 */
-  const c=pc();pop(c.x,P.y-6,dmg,'#ff6070');SFX.hurt();addShake(7);flash=.35;flashCol='200,30,50';
+  const gd=mouse.r&&!paused&&P.parryT<=0&&(wpnHas('katana')||wpnHas('staff')); /* 按住右鍵防禦：受擊傷害減半 */
+  const dmg=Math.round(d*D.dmg*(gd?.5:1));P.hp-=dmg;if(gd){try{guardFx();}catch(e){}}P.iframes=Math.round((boss&&boss.kind==='katavina'&&boss.starFx&&!boss.dead?21:42)*(boss&&boss.kind==='katavina'&&!boss.dead&&boss.tl&&boss.tl.mode==='alone'?2/3:1)); /* 皇女為主期間：受擊無敵時間減三分之一 */stats.hits++; /* 卡塔薇娜星空期間：受擊無敵時間減半 */
+  const c=pc();pop(c.x,P.y-6,dmg,gd?'#bcd4ff':'#ff6070');if(gd)SFX.clangLow&&SFX.clangLow();else SFX.hurt();addShake(7);flash=.35;flashCol='200,30,50';
   part(c.x,c.y,16,'#ff6070',2.6,30,1);
   if(P.hp<=0){P.hp=0;P.dead=true;stats.deaths++;if(MP.on){P.respawnT=900;mpDeathKick();}else if(isTR()){P.trRes=60;}else{state='dead';endT=0;SESS_DEATHS++;}part(c.x,c.y,80,'#ffffff',4,70,2);SFX.boom();}
   return true;
@@ -4371,11 +4373,13 @@ function snHeadZone(B){if(!B||B.dead||B.hidden)return null;if(B.kind==='katavina
 function snAimOn(){const Z=snHeadZone(boss);if(!Z)return false;const m=wpnMouse();return Math.hypot(m.x-Z.x,m.y-Z.y)<Z.r+SN_NEAR;} /* 準星在弱點附近就算 */
 const SN_NEAR=150; /* 狙擊爆擊：準星／彈道離弱點這麼近就觸發 */
 let SN_HS=[]; /* 弱點命中的光效 */
+let GUARD_FX=[];function guardFx(){const rg=P.rig;if(!rg||!rg.out)return;const sn=snapRig(rg.out,'#dbe8ff'),c=mk(sn.width,sn.height);c.getContext('2d').drawImage(sn,0,0);sn.used=false;GUARD_FX.push({c,x:Math.round(P.rx)-rg.ox,y:Math.round(P.ry)-rg.oy,t:0,T:24});if(GUARD_FX.length>6)GUARD_FX.shift();} /* 防禦成功：玩家殘影放大淡出 */
+function guardFxDraw(st){if(!GUARD_FX.length)return;g.save();g.imageSmoothingEnabled=false;for(const q of GUARD_FX){if(st)q.t++;const e=q.t/q.T,sc=1+e*.8,cx_=q.x+q.c.width/2,cy_=q.y+q.c.height/2;g.save();g.globalAlpha=.75*(1-e);g.translate(cx_,cy_);g.scale(sc,sc);g.drawImage(q.c,-q.c.width/2,-q.c.height/2);g.restore();}g.restore();GUARD_FX=GUARD_FX.filter(q=>q.t<q.T);}
 let SN_CHK=[];function snChunkDraw(st){if(!SN_CHK.length)return;g.save();for(const q of SN_CHK){if(st){q.t++;if(!q.ld){q.vy=Math.min(q.vy+.07,2.2);q.vx*=.97;q.vy*=.985; /* 下落速度上限：掉得慢 */q.x+=q.vx;q.y+=q.vy;q.rot+=q.vr; /* 較輕的重力＋空氣阻力：往上飛慢下來再落下 */if(q.y+q.hh>=GROUND&&q.vy>0){q.y=GROUND-q.hh;if(q.vy>1.6){q.vy*=-.3;q.vx*=.6;q.vr*=.5;}else{q.ld=1;q.vx=q.vy=0;}}}}
     const al=q.t<90?1:Math.max(0,1-(q.t-90)/30); /* 2 秒淡出消失 */if(al<=0)continue;g.globalAlpha=al;g.save();g.translate(Math.round(q.x),Math.round(q.y));g.rotate(q.rot);g.beginPath();q.pts.forEach((p,k)=>k?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fillStyle=q.col;g.fill();g.strokeStyle=q.hi;g.lineWidth=1;g.stroke();g.restore();}g.restore();SN_CHK=SN_CHK.filter(q=>q.t<120);} /* 狙擊打地板的碎片 */
 let SN_MZS=[];function snSmokeDraw(){const p=P;if(state==='title'){SN_MZS.length=0;SN_CHK.length=0;return;}const st=!paused;
   if(p&&st&&p.snSmoke>0){p.snSmoke--;if(p.weapon!=='sniper'||p.dead)p.snSmoke=0;else if(p.muzzleW){const k=Math.min(1,p.snSmoke/40);SN_MZS.push({x:p.muzzleW[0],y:p.muzzleW[1],vy:-.9,t:0,life:70,a0:.35+.3*k,g:p.snSmkG});}} /* 槍口冒出往上飄的煙條 */
-  snChunkDraw(st);
+  snChunkDraw(st);guardFxDraw(st);
   if(MP.on)for(const id in MP.robj){const o=MP.robj[id];if(!o)continue;const L=o.mzs=o.mzs||[];const on=o.smk&&!o.dead&&o.weapon==='sniper'&&o.muzzleW;if(on&&!o._smkOn)o.smkG=(o.smkG||0)+1;o._smkOn=on;if(on&&st)L.push({x:o.muzzleW[0],y:o.muzzleW[1],vy:-.9,t:0,life:70,a0:.5,g:o.smkG});snSmkList(L,st);o.mzs=L.filter(q=>q.t<q.life);} /* 其他人的槍口冒煙 */
   if(!SN_MZS.length)return;snSmkList(SN_MZS,st);SN_MZS=SN_MZS.filter(q=>q.t<q.life);}
 function snSmkList(L,st){if(!L.length)return;if(st)for(const q of L){q.t++;q.y+=q.vy;}g.save();g.lineCap='round';g.strokeStyle='#d4d2dc'; /* 直線煙條：相鄰煙點連成線、往上直直飄 */
