@@ -2151,7 +2151,7 @@ function kvBeamLine(l,tele,fire,soft){const ex=l.x+Math.cos(l.a)*6000,ey=l.y+Mat
     gg.save();gg.globalAlpha=.7*k;gg.strokeStyle=C2;gg.lineWidth=7*k*Math.sqrt(W_)*1.4;gg.beginPath();gg.moveTo(l.x,l.y);gg.lineTo(ex,ey);gg.stroke();gg.restore();}}
 /* KVDEATH */
 /* ===== 卡塔薇娜死亡動畫（約 28 秒）：暈眩 → 皇女向上飛走傳送消失 → 本體發抖越來越亮、四周吸入紫色粒子、周圍扭曲 → 五道射光輪流穿出 → 強光畫面全白 → 粒子飄落、光源照出玩家影子（丁達爾） ===== */
-const KV_DTH=1700,KV_DPR=40,KV_DRAY=[600,680,760,840,920],KV_DFL=1000;
+const KV_DTH=1700,KV_DPR=340, /* 皇女離開本體：死亡後 5.7 秒（原本 0.7 秒，再慢 5 秒） */KV_DRAY=[600,680,760,840,920],KV_DFL=1000;
 function kvDeathStep(b){const T=++b.deathT;b.anim++;b.fr+=.1;b.inv=99999;b.ghostHp=Math.max(b.hp,b.ghostHp-b.mhp*.004);const c=kvCore(b);
   if(T===1){KV_CORPSE=[];KV_FALL=[];for(const m of KV_MOBS){try{kvBlood(m.x,m.y,m.k==='e'?34:16,-Math.PI/2,1.6,m.k==='e'?5.5:4,true);kvMobGibs(m);}catch(e){}}if(KV_MOBS.length)kvMobDieSfx(true);KV_MOBS=[];
     b.cb=null;b.rk=null;b.pil=null;b.tl=null;b.closeUp=false;b.waveRing=null;b.barr=null;b.swd=null;b.starFx=null;b.rbCharge=false;b.bh=null;b.ar=null;b.pa=null;b.pa2=null;b.suck=null;b.mobKill=null;b.qk=null;b.tri=null;b.zap=null;b.th=null;b.beam=null;
