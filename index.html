@@ -4479,7 +4479,7 @@ function wpnStep(){cloneStep();const tgt=PWP.length?wpnNearCursor():null,KT=PWP.
     const gn=Math.min(KM.buf,1/180);KM.buf-=gn;
     if(KM.act){KM.v-=1/240;KM.buf=0; /* 飛刀條集滿後持續 4 秒（原 3 秒） */if(KM.v<=0){KM.v=0;KM.act=false;}}
     else{KM.v=Math.min(1,KM.v+gn);if(KM.v>=1){KM.act=true;SFX.glint&&SFX.glint();}else if(frameN-KM.last>180)KM.v=Math.max(0,KM.v-1/30);}}if(P&&P.kunPose&&P.kunPose.t>-99)P.kunPose.t--;
-  for(const q of PWT)q.life--;PWT=PWT.filter(q=>q.life>0);
+  for(const q of PWT){if(q.hold>0)q.hold--;else q.life--;}PWT=PWT.filter(q=>q.life>0);
   for(const q of PWP){q.px=q.x;q.py=q.y;q.life--;q.t=(q.t||0)+1;
     if(q.k==='slaser')continue;
     if(q.k==='sring'){if(q.tx!=null){const e=1-q.life/q.max,ez=1-Math.pow(1-e,3);q.x=lerp(q.sx,q.tx,ez);q.y=lerp(q.sy,q.ty,ez);}else{q.x+=q.vx;q.y+=q.vy;q.vx*=.82;q.vy*=.82;}continue;}
@@ -4519,7 +4519,7 @@ function wpnStep(){cloneStep();const tgt=PWP.length?wpnNearCursor():null,KT=PWP.
         else{const tg=q.tg&&!q.tg.dead?q.tg:null;q.stick={tg,ox:tg?q.x-tg.x:0,oy:tg?q.y-tg.y:0};}q.st=0;part(q.x,q.y,6,'#bcd4ff',2,12,1);
         if(q.stick.tg){const on=PWP.filter(o=>o.k==='kunai'&&o.stick&&o.stick.tg===q.stick.tg&&o.life>0);for(let i=0;i<on.length-KUN_MAXSTUCK;i++)on[i].life=0;}} /* 同一目標上最多插 10 把，多的從最早插上的移除 */
       else{q.life=0;part(q.x,q.y,10,'#d8b8ff',2.4,16,1);}}}
-  for(const q of PWP)if(q.k==='snipe'&&q.life<=0&&q.tr&&q.tr.length>1)PWT.push({pts:q.tr,life:30,max:30,ws:[0,1,2].map(()=>({sd:Math.random()<.5?-1:1,dr:rnd(8,18),am:rnd(2,4.5),fq:rnd(.01,.022),ph:rnd(0,TAU),sp:rnd(.6,1.4)}))}); /* 子彈消失後拖尾慢慢淡出 */
+  for(const q of PWP)if(q.k==='snipe'&&q.life<=0&&q.tr&&q.tr.length>1)PWT.push({pts:q.tr,life:30,max:30,hold:30, /* 先停 0.5 秒才開始消散 */ws:[0,1,2].map(()=>({sd:Math.random()<.5?-1:1,dr:rnd(8,18),am:rnd(2,4.5),fq:rnd(.01,.022),ph:rnd(0,TAU),sp:rnd(.6,1.4)}))}); /* 子彈消失後拖尾慢慢淡出 */
   PWP=PWP.filter(q=>q.life>0);}
 function wpnSnipeExit(q){const a=Math.atan2(q.vy,q.vx);let hp=q.hitP;
   if(!hp){const A_=[q.px,q.py],B_=[q.x,q.y],cs=[];if(typeof KV_MOBS!=='undefined')for(const m of KV_MOBS)cs.push([m.x,m.y]);if(boss&&boss.cp)for(const p of boss.cp)cs.push([p.x,p.y]);let bd=1e9;for(const c of cs){const d=segDist(A_,B_,c,c);if(d<bd){bd=d;const dx=B_[0]-A_[0],dy=B_[1]-A_[1],l2=dx*dx+dy*dy||1,u=clamp(((c[0]-A_[0])*dx+(c[1]-A_[1])*dy)/l2,0,1);hp=[A_[0]+dx*u,A_[1]+dy*u];}}if(bd>80)hp=null;} /* 打到菁英怪／柱子：找彈道上離它最近的點 */
