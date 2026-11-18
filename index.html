@@ -4519,7 +4519,7 @@ function wpnStep(){cloneStep();const tgt=PWP.length?wpnNearCursor():null,KT=PWP.
         else{const tg=q.tg&&!q.tg.dead?q.tg:null;q.stick={tg,ox:tg?q.x-tg.x:0,oy:tg?q.y-tg.y:0};}q.st=0;part(q.x,q.y,6,'#bcd4ff',2,12,1);
         if(q.stick.tg){const on=PWP.filter(o=>o.k==='kunai'&&o.stick&&o.stick.tg===q.stick.tg&&o.life>0);for(let i=0;i<on.length-KUN_MAXSTUCK;i++)on[i].life=0;}} /* 同一目標上最多插 10 把，多的從最早插上的移除 */
       else{q.life=0;part(q.x,q.y,10,'#d8b8ff',2.4,16,1);}}}
-  for(const q of PWP)if(q.k==='snipe'&&q.life<=0&&q.tr&&q.tr.length>1)PWT.push({pts:q.tr,life:30,max:30,hold:6, /* 先停 0.1 秒才開始消散 */ws:[0,1,2].map(()=>({sd:Math.random()<.5?-1:1,dr:rnd(8,18),am:rnd(2,4.5),fq:rnd(.01,.022),ph:rnd(0,TAU),sp:rnd(.6,1.4)}))}); /* 子彈消失後拖尾慢慢淡出 */
+  for(const q of PWP)if(q.k==='snipe'&&q.life<=0&&q.tr&&q.tr.length>1)PWT.push({pts:q.tr,life:30,max:30,hold:6, /* 先停 0.1 秒才開始消散 */ws:[0,1,2].map(()=>({sd:Math.random()<.5?-1:1,dr:rnd(4,9),bk:rnd(6,14),am:rnd(2,4.5),fq:rnd(.01,.022),ph:rnd(0,TAU),sp:rnd(.6,1.4)}))}); /* 子彈消失後拖尾慢慢淡出 */
   PWP=PWP.filter(q=>q.life>0);}
 function wpnSnipeExit(q){const a=Math.atan2(q.vy,q.vx);let hp=q.hitP;
   if(!hp){const A_=[q.px,q.py],B_=[q.x,q.y],cs=[];if(typeof KV_MOBS!=='undefined')for(const m of KV_MOBS)cs.push([m.x,m.y]);if(boss&&boss.cp)for(const p of boss.cp)cs.push([p.x,p.y]);let bd=1e9;for(const c of cs){const d=segDist(A_,B_,c,c);if(d<bd){bd=d;const dx=B_[0]-A_[0],dy=B_[1]-A_[1],l2=dx*dx+dy*dy||1,u=clamp(((c[0]-A_[0])*dx+(c[1]-A_[1])*dy)/l2,0,1);hp=[A_[0]+dx*u,A_[1]+dy*u];}}if(bd>80)hp=null;} /* 打到菁英怪／柱子：找彈道上離它最近的點 */
@@ -4555,7 +4555,7 @@ function wpnSnipeHoleDraw(){for(const h of SNH){h.life--;const r=h.ref;if(!r||r.
 function wpnSnipeWisp(pts,ws,e){if(pts.length<2)return;const sm=[];let tot=0;for(let i=1;i<pts.length;i++){const ax=pts[i-1][0],ay=pts[i-1][1],dx=pts[i][0]-ax,dy=pts[i][1]-ay,L=Math.hypot(dx,dy)||1,n=Math.max(1,Math.ceil(L/18));for(let j=0;j<n;j++){const u=j/n;sm.push([ax+dx*u,ay+dy*u,-dy/L,dx/L,tot+L*u]);}tot+=L;}const N=sm.length;if(N<2)return;
   const ek=k=>clamp((e*1.7-k)/.7,0,1); /* 每一段的飄散進度：尾巴先散，往前傳 */
   g.save();g.lineCap='round';g.strokeStyle='#e8f2ff';g.lineWidth=1;
-  for(const w of ws){let pv=null;for(let i=0;i<N;i++){const [x,y,nx,ny,d]=sm[i],k=i/(N-1),el=ek(k),off=w.sd*w.dr*el+Math.sin(d*w.fq+w.ph+el*3*w.sp)*w.am*el,px=x+nx*off,py=y+ny*off,al=.4*Math.min(1,el*5)*(1-el); /* 透明度減半 */
+  for(const w of ws){let pv=null;for(let i=0;i<N;i++){const [x,y,nx,ny,d]=sm[i],k=i/(N-1),el=ek(k),off=w.sd*w.dr*el+Math.sin(d*w.fq+w.ph+el*3*w.sp)*w.am*el,bb=(w.bk||0)*el,px=x+nx*off-ny*bb,py=y+ny*off+nx*bb,al=.4*Math.min(1,el*5)*(1-el); /* 透明度減半 */
       if(pv&&al>.01){g.globalAlpha=al;g.beginPath();g.moveTo(pv[0],pv[1]);g.lineTo(px,py);g.stroke();}pv=[px,py];
       if(!paused&&el>0&&el<.8&&Math.random()<.05)parts.push({x:px,y:py,vx:nx*w.sd*rnd(.2,.9)+rnd(-.2,.2),vy:ny*w.sd*rnd(.2,.9)+rnd(-.2,.2),life:Math.round(rnd(14,26)),max:26,col:Math.random()<.5?'#ffffff':'#cfe4ff',size:1});}} /* 1 像素粒子飄散 */
   g.restore();}
