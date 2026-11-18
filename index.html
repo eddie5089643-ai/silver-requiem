@@ -4339,7 +4339,7 @@ function snHeadZone(B){if(!B||B.dead||B.hidden)return null;if(B.kind==='katavina
   if(B.kind==='katavina'){if(B.tl&&B.tl.mode==='alone'){const pr=kvPrincessPos(B);return {x:pr.x-.5,y:pr.y-7,r:6.5,tight:true};} /* 皇女為主：只算頭（臉＋頭髮），範圍縮小 */if(B.tl&&B.tl.bodyOff)return null;const pr=kvPrPos(B);return (B.phase|0)===0&&!B.p3vis?{x:pr.x,y:pr.y-4,r:5,tight:true}:{x:pr.x-.5,y:pr.y-7,r:6.5,tight:true};} /* 本體上的皇女：只算頭部 */
   if(B.kind==='mirror')return {x:B.x,y:B.y-34,r:6};if(B.kind==='dummy')return {x:B.x,y:GROUND-56,r:9}; /* 稻草人頭部 */return null;}
 function snAimOn(){const Z=snHeadZone(boss);if(!Z)return false;const m=wpnMouse();return Math.hypot(m.x-Z.x,m.y-Z.y)<Z.r+SN_NEAR;} /* 準星在弱點附近就算 */
-const SN_NEAR=36; /* 狙擊爆擊：準星／彈道離弱點這麼近就觸發 */
+const SN_NEAR=150; /* 狙擊爆擊：準星／彈道離弱點這麼近就觸發 */
 let SN_HS=[]; /* 弱點命中的光效 */
 let SN_CHK=[];function snChunkDraw(st){if(!SN_CHK.length)return;g.save();for(const q of SN_CHK){if(st){q.t++;if(q.land<0){q.vy=Math.min(q.vy+.3,9);q.x+=q.vx;q.y+=q.vy;q.rot+=q.vr;if(q.y+q.hh>=GROUND){q.y=GROUND-q.hh;if(Math.abs(q.vy)>2.2){q.vy*=-.32;q.vx*=.6;q.vr*=.5;}else{q.land=0;q.vy=0;q.vx=0;}}}else q.land++;}
     const al=q.land<0?1:Math.max(0,1-Math.max(0,q.land-40)/30);if(al<=0)continue;g.globalAlpha=al;g.save();g.translate(Math.round(q.x),Math.round(q.y));g.rotate(q.rot);g.beginPath();q.pts.forEach((p,k)=>k?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fillStyle=q.col;g.fill();g.strokeStyle=q.hi;g.lineWidth=1;g.stroke();g.restore();}g.restore();SN_CHK=SN_CHK.filter(q=>(q.land<70)&&q.t<240);} /* 狙擊打地板的碎片：彈一下、落地停住後淡出 */
