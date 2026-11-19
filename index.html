@@ -237,7 +237,7 @@ function audioWatch(){if(!AC)return;if(AC.state!=='running'&&AC.state!=='closed'
 function audioCap(){if(AUD.cap)return;AUD.cap=1;const hist=[],wrap=O=>{for(const k in O){const f=O[k];if(typeof f!=='function')continue;
   O[k]=function(){if(typeof MP!=='undefined'&&MP.mute)return;if(AC){const t=AC.currentTime;while(hist.length&&hist[0]<t-.2)hist.shift();if(hist.length>=28)return;hist.push(t);}return f.apply(this,arguments);};}};
   wrap(SFX);if(typeof MP!=='undefined'&&MP.sfx0)wrap(MP.sfx0);} /* 0.2 秒內最多 28 個音效（含多人轉送的音效） */
-addEventListener('load',()=>{try{for(const nm of ['kvArenaDraw','kvArFlamesTop']){const _f=window[nm];window[nm]=function(){remA(true);REM_A=.7;try{return _f.apply(this,arguments);}finally{remA(false);}};} /* 整個火圈不透明度 70% */const _w=wpnDraw;wpnDraw=function(){try{return _w.apply(this,arguments);}finally{remA(false);}};const _t=drawTrail;drawTrail=function(){try{return _t.apply(this,arguments);}finally{remA(false);}};const _h=mpHostMsg;mpHostMsg=function(c,d){const mu=d&&['mhit','cphit','hit','crit','ctrHit'].includes(d.t);if(mu)MP.mute=1;try{return _h(c,d);}finally{if(mu)MP.mute=0;}};}catch(e){}}); /* 畫完恢復透明度；別人的攻擊打中不播音效 */
+addEventListener('load',()=>{try{for(const nm of ['kvArenaDraw','kvArFlamesTop']){const _f=window[nm];window[nm]=function(){remA(true);REM_A=.5;try{return _f.apply(this,arguments);}finally{remA(false);}};} /* 整個火圈與光不透明度 50% */const _w=wpnDraw;wpnDraw=function(){try{return _w.apply(this,arguments);}finally{remA(false);}};const _t=drawTrail;drawTrail=function(){try{return _t.apply(this,arguments);}finally{remA(false);}};const _h=mpHostMsg;mpHostMsg=function(c,d){const mu=d&&['mhit','cphit','hit','crit','ctrHit'].includes(d.t);if(mu)MP.mute=1;try{return _h(c,d);}finally{if(mu)MP.mute=0;}};}catch(e){}}); /* 畫完恢復透明度；別人的攻擊打中不播音效 */
 function audioInit(){
   if(AC){if(AC.state!=='running'&&AC.state!=='closed')AC.resume();return;}
   const AX=window.AudioContext||window.webkitAudioContext;try{AC=new AX({sampleRate:48000,latencyHint:'interactive'});}catch(e){try{AC=new AX();}catch(e2){AC=null;return;}}
@@ -3181,7 +3181,6 @@ function kvArenaStep(b){const on=b.tl&&b.tl.bodyOff&&!b.dead;if(!b.ar){if(!on||b
   for(let i=0;i<26;i++){const th=rnd(0,TAU),p=kvArPt(a,th,rnd(0,18)),x=p[0],y=p[1];if(x<VX0-60||x>VX0+VW_+60||y<VY0-60||y>VY0+VH_+60)continue;
     const nx=Math.cos(th),ny=Math.sin(th); /* 火焰：沿邊界散開、往外飄、往上竄 */
     a.parts.push({x,y,vx:nx*rnd(.4,1.3)+rnd(-.15,.15),vy:ny*rnd(.4,1.3)+rnd(-.15,.15), /* 往外擴散 */life:rnd(22,40)|0,max:40,s:rnd(2,6)|0});}
-  if(on){if(a.storm){a.storm.t++;if(a.storm.t>=a.storm.T)a.storm=null;}else if((a.stCD=(a.stCD==null?180:a.stCD)-1)<=0){a.stCD=Math.round(rnd(240,420));a.storm={th:rnd(0,TAU),t:0,T:170};}} /* 太陽風暴：每 4～7 秒在圈外隨機一處噴發 */
   for(const q of a.parts){q.x+=q.vx;q.y+=q.vy;q.life--;}a.parts=a.parts.filter(q=>q.life>0);if(a.parts.length>500)a.parts.splice(0,a.parts.length-500);}
 /* 圈外火焰剪影：畫在變暗層上面（不被壓暗） */
 function kvArFlamesTop(){const b=boss;if(!b||b.kind!=='katavina'||!b.ar||state==='title')return;const a=b.ar,ft=frameN;
@@ -3195,14 +3194,6 @@ function kvArFlamesTop(){const b=boss;if(!b||b.kind!=='katavina'||!b.ar||state==
         const ph=i*2.37+row*1.9,L=(row?92:112)*(.62+.38*Math.sin(ft*.085+ph))*(.85+.15*Math.sin(ft*.21+ph*1.7)),w=(row?50:60)*(.85+.15*Math.sin(ft*.13+ph)),sw=Math.sin(ft*.07+ph*.8)*L*.22+Math.sin(ft*.19+ph)*L*.08,ux=Math.cos(th),uy=Math.sin(th);
         tongue(p,ux,uy,w*1.35,L*1.12,sw*1.1,col,.17); /* 外層：較大、很淡＝柔和邊緣 */
         tongue(p,ux,uy,w,L,sw,col,.5);}}}
-  {const S_=a.storm; /* 太陽風暴：圈外某處噴出一圈圈電漿弧、往外衝的粒子與強光 */
-    if(S_){const T=S_.T,t=S_.t,u=t/T,p=kvArPt(a,S_.th,4),ux=Math.cos(S_.th),uy=Math.sin(S_.th),vx=-uy,vy=ux,grow=Math.min(1,u/.3),fade=u<.7?1:Math.max(0,1-(u-.7)/.3),P_=(x,y)=>[p[0]+vx*x+ux*y,p[1]+vy*x+uy*y];
-      {const R0=(90+160*grow)*fade+20;gg.save();gg.setTransform(VZ,0,0,VZ,-VX0*VZ,-VY0*VZ);gg.globalAlpha=.55*fade;gg.drawImage(soft(Math.round(R0),'rgba(230,200,255,1)'),p[0]+ux*60-R0,p[1]+uy*60-R0);gg.restore();}
-      g.lineCap='round';
-      for(let k=0;k<5;k++){const sp=28+k*20,H=(80+k*46)*grow*(.92+.08*Math.sin(ft*.11+k)),tw=Math.sin(ft*.05+k*1.3)*18,a0=P_(-sp,0),a1=P_(sp,0),c1=P_(-sp*.9+tw,H),c2=P_(sp*.9+tw,H*1.05);
-        for(const [lw,col,al] of [[9,'200,150,255',.22],[5,'232,214,255',.45],[2,'255,255,255',.9]]){g.globalAlpha=al*fade*(1-k*.12);g.strokeStyle='rgb('+col+')';g.lineWidth=lw;g.beginPath();g.moveTo(a0[0],a0[1]);g.bezierCurveTo(c1[0],c1[1],c2[0],c2[1],a1[0],a1[1]);g.stroke();}}
-      g.globalAlpha=1;
-      if(!paused&&fade>0)for(let i=0;i<4;i++){const ang=S_.th+rnd(-.5,.5),sp=rnd(2.5,7),q=P_(rnd(-30,30),rnd(0,40));parts.push({x:q[0],y:q[1],vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:Math.round(rnd(24,46)),max:46,col:Math.random()<.5?'#ffffff':'#e2ccff',size:Math.random()<.4?3:2});}}}
   g.restore();}
 function kvArenaDraw(){const b=boss;if(!b||b.kind!=='katavina'||!b.ar)return;const a=b.ar,N=200,t=a.t||0,L=VX0-60,T=VY0-60,Rr=VX0+VW_+60,B=VY0+VH_+60;
   {const sc=p=>[(p[0]-VX0)*VZ,(p[1]-VY0)*VZ],scx=(a.cx-VX0)*VZ,scy=(a.cy-VY0)*VZ; /* 往外延伸、燒起來的扭曲波浪（只扭邊界外側一圈） */
