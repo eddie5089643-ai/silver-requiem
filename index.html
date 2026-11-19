@@ -1677,7 +1677,7 @@ function kvMpLocal(b){if(!b||b.kind!=='katavina'||!P)return;const me=!MP.host||M
   if(!MP.host){if(!b.pil)KV_PBGs=null;else{KV_PBGs=KV_PBGs||{};for(const p of b.pil)if(p.first&&p.t>=KV_PIL_TELE&&!KV_PBGs[p.w]){KV_PBGs[p.w]=1;if(!P.dead&&GROUND-(P.y+P.h)>550)KV_PBG=120;}}if(KV_PBG>0)KV_PBG--;}}
 let KV_PBGs=null;
 function kvMpN(){return (typeof MP!=='undefined'&&MP&&MP.on&&MP.players&&MP.players.length)?Math.max(1,MP.players.length):1;} /* 多人：人數倍率（每多一位玩家血量多一倍） */
-function kvMobSpawnElite(x,y){const H_=(boss&&(boss.phase|0)>=1?600:1000)*kvMpN(); /* 第二階段出現的菁英怪血量 600 */KV_MOBS.push({id:(KV_MID=(KV_MID||0)+1),k:'e',x,y,wx:x,wy:y,vx:0,vy:0,hp:H_,mhp:H_,r:40,t:0,born:40,hf:0,f:Math.random()*12,ang:rnd(0,TAU),bmT:Math.floor(rnd(450,600)),bm:null});}
+function kvMobSpawnElite(x,y,hp0){const H_=(hp0||(boss&&(boss.phase|0)>=1?600:1000))*kvMpN(); /* 第二階段出現的菁英怪血量 600 */KV_MOBS.push({id:(KV_MID=(KV_MID||0)+1),k:'e',x,y,wx:x,wy:y,vx:0,vy:0,hp:H_,mhp:H_,r:40,t:0,born:40,hf:0,f:Math.random()*12,ang:rnd(0,TAU),bmT:Math.floor(rnd(450,600)),bm:null});}
 function kvShieldDmg(b,d,x,y){if(!(b.shield>0))return;{const c=kvShieldC(b),a=Math.atan2(y-c.y,x-c.x),dd=Math.min(KV_SH_R,Math.hypot(x-c.x,y-c.y));(b.shSpots=b.shSpots||[]).push({x:c.x+Math.cos(a)*Math.max(dd,KV_SH_R*.9),y:c.y+Math.sin(a)*Math.max(dd,KV_SH_R*.9),t:0,big:d>1});if(b.shSpots.length>24)b.shSpots.shift();} /* 命中處記錄 */b.shield=Math.max(0,b.shield-d);b.shHit=d>1?20:8;pop(x+rnd(-6,6),y-6,'-'+Math.round(d),d>1?'#ecd2ff':'#b48ad8',d>1);part(x,y,d>1?24:4,'#dcb8ff',d>1?3:1.6,d>1?26:12,1);if(d>1){addShake(6);SFX.boom&&SFX.boom();}
   if(b.shield<=0){b.shBreak=60;b.shWave={t:0,T:362};kvShieldShatter(b);addShake(18);const c=kvShieldC(b);for(let i=0;i<120;i++){let a;do{a=rnd(0,TAU);}while(c.y+Math.sin(a)*KV_SH_R>GROUND-2);const rr=KV_SH_R*rnd(.85,1.02),L_=rnd(70,140);parts.push({x:c.x+Math.cos(a)*rr,y:c.y+Math.sin(a)*rr,vx:Math.cos(a)*rnd(.6,3.6),vy:Math.sin(a)*rnd(.6,3.6),life:L_,max:L_,col:Math.random()<.4?'#ffffff':Math.random()<.5?'#c890ff':'#e8ccff',size:Math.random()<.35?2:1,grav:.02});} /* 破碎粒子：更多、維持更久 */addShake(10);flash=.5;flashCol='225,190,255';}} /* 護盾破裂 */
 const KV_SH_R=165;function kvShieldC(b){return {x:b.x,y:GROUND-KV_SH_R/2};} /* 圓心在地板上方 R/2：下面 1/4 被地板平切 */
@@ -2039,13 +2039,14 @@ function kvChainDraw(){const b=boss;if(!KV_CH_IMG.complete)return;const W=10*KV_
   for(const q of KV_CH_DROP){const al=q.t>80?(110-q.t)/30:1,dx=Math.cos(q.a)*H/2,dy=Math.sin(q.a)*H/2;seg(q.x-dx,q.y-dy,q.x+dx,q.y+dy,al);}
   g.globalAlpha=1;g.restore();}
 
-function kvMobsStep(b){kvGibsStep();kvShardsStep();if(b.kind==='katavina')kvQuakeStep(b);if(b.kind==='katavina'&&(b.phase|0)===0&&!b.dead){b.posture=0;if(b.broken>0)b.broken=0;} /* 第一階段不累積架勢 */const p0=(b.phase|0)===0,sp=p0||(b.phase|0)===1,mCap=p0?20:5,eCap=p0?2:3,on=b.kind==='katavina'&&!b.dead&&!(p0&&b.dormant)&&state==='fight'&&(sp||KV_MOBS.length>0); /* 第一、二階段會刷怪；第三階段起不再刷新但不清除 */
+function kvMobsStep(b){kvGibsStep();kvShardsStep();if(b.kind==='katavina')kvQuakeStep(b);if(b.kind==='katavina'&&(b.phase|0)===0&&!b.dead){b.posture=0;if(b.broken>0)b.broken=0;} /* 第一階段不累積架勢 */const p0=(b.phase|0)===0,sp=p0||(b.phase|0)===1,mCap=p0?20:5,eCap=p0?2:3,on=b.kind==='katavina'&&!b.dead&&!(p0&&b.dormant)&&state==='fight'&&(sp||KV_MOBS.length>0||!!b.p3elite); /* 第一、二階段會刷怪；第三階段起不再刷新但不清除 */
   if(b.kind==='katavina'){if((b.phase|0)===0&&!b.dead){const L=b.x-170,Rr=b.x+170,T=GROUND-300;const hid=b.platHid=b.platHid||[];for(let i=PLATS.length-1;i>=0;i--){const pl=PLATS[i];if(pl.x<Rr&&pl.x+pl.w>L&&pl.y>T){hid.push(pl);PLATS.splice(i,1);}}} /* 第一階段：移除跟 Boss 重疊的平台 */
     else if(b.platHid&&b.platHid.length){PLATS.push(...b.platHid);b.platHid=[];}} /* 離開第一階段後放回 */
   if(!on){if(KV_MOBS.length){for(const m of KV_MOBS)part(m.x,m.y,14,'#b070ff',2.5,28,1);KV_MOBS=[];}b.mobT=0;return;}
   if((b.phase|0)>=2&&!b.p3done){for(const m of KV_MOBS){m.vx=m.vy=0;m.kbx=m.kby=0;m.dash=null;m.bm=null;}b.zap=null;b.tri=null;return;} /* 第三階段開場動畫：怪物全部停止 */
   if(!b.mobInit&&p0){b.mobInit=true;b.mobT=0;b.shield=b.mshield=800;b.eliteT=900; /* 第一階段護盾血量 800 */}
   if(!p0&&sp&&!b.p2Init){b.p2Init=true;b.mobT=0;b.eliteRe=[];b.e2T=0;for(const m of KV_MOBS)if(m.k==='e'){m.mhp=600*kvMpN();m.hp=Math.min(m.hp,m.mhp);}} /* 第二階段開始：場上剩餘菁英怪最大血量改成 600 */
+  if(b.p3elite&&(b.phase|0)>=2){if(KV_MOBS.filter(m=>m.k==='e').length<3){if(++b.e2T>=2400){b.e2T=0;const c=pc(),o=KV_MOBS.find(m=>m.k==='e'),sd=o?(o.x<c.x?1:-1):(Math.random()<.5?-1:1);const p=kvElitePos(sd);kvMobSpawnElite(p.x,p.y,400);}}else b.e2T=0;} /* 第三階段（第一次星空後）：跟第二階段一樣補菁英怪，血量 400，不出小怪 */
   if(!p0&&sp&&!kvCpAlive(b)){b.eliteRe=[];if(KV_MOBS.filter(m=>m.k==='e').length<eCap){if(++b.e2T>=2400){b.e2T=0;const c=pc(),o=KV_MOBS.find(m=>m.k==='e'),sd=o?(o.x<c.x?1:-1):(Math.random()<.5?-1:1);const p=kvElitePos(sd);kvMobSpawnElite(p.x,p.y);}}else b.e2T=0;} /* 第二階段：每 40 秒補一隻菁英怪（最多 3 隻） */
   if(sp){
   if(p0&&b.eliteT>0&&--b.eliteT===0){let p=kvElitePos(-1);kvMobSpawnElite(p.x,p.y);p=kvElitePos(1);kvMobSpawnElite(p.x,p.y);} /* 第一階段開始 15 秒後才出現兩隻菁英怪 */
@@ -2303,7 +2304,7 @@ function makeKatavina(){
     b.warpFx=null;b.warpHist=[];b.warpS=1;b.warpSH=[];b.haloS=1;b.haloSH=[];b.hidden=false;return true;};
   b._warp=warp;b._C=C;
   /* 第三階段：開始先移到玩家附近，之後隨機放招（火柱／光束／巨石）；第一次皇女為主前不放擎天火柱；放招期間同時追玩家（光束不動） */
-  const p3rand=(b,t)=>{if(t===0){b.p3cur=null;if(!b.p3met)b.p3cur='app';else{const pool=[kvP3Beam,kvP3Rock];if(b.p3alone)pool.push(kvPillarsMove);let o=pool.filter(f=>f!==b.p3last).sort(()=>Math.random()-.5);if(pool.includes(b.p3last))o.push(b.p3last); /* 不連續放同一招；其他招都不能放時才重複 */for(const f of o){if(!f(b,0)){b.p3cur=f;b.p3last=f;break;}}if(!b.p3cur)b.p3cur='chase';}return false;}
+  const p3rand=(b,t)=>{if(t===0){b.p3cur=null;if(!b.p3met)b.p3cur='app';else if(b.p3after===1){b.p3after=2;b._pil3=true;kvPillarsMove(b,0);b.p3cur=kvPillarsMove;b.p3last=kvPillarsMove;}else{const pool=[kvP3Beam,kvP3Rock];if(b.p3alone&&!b.noPil)pool.push(kvPillarsMove);let o=pool.filter(f=>f!==b.p3last).sort(()=>Math.random()-.5);if(pool.includes(b.p3last))o.push(b.p3last); /* 不連續放同一招；其他招都不能放時才重複 */for(const f of o){if(!f(b,0)){b.p3cur=f;b.p3last=f;break;}}if(!b.p3cur)b.p3cur='chase';}return false;}
     if(b.p3cur==='app'){kvChase(b);const c=C();if(Math.hypot(c.x-b.x,c.y-140-b.y)<140||t>360){b.p3met=true;return true;}return false;}
     if(b.p3cur==='chase'){kvChase(b);return t>=60;}return b.p3cur(b,t);};
   const stay=(b,t)=>{b.x=WW/2;b.y=GROUND;b.vx=0;b.vy=0;return t>=240;}; // 第一階段：固定在地圖正中央，不移動、不傳送
@@ -2340,7 +2341,7 @@ function kvTimeline(b){const pos=b.p3clk,prev=b.tlPrev===undefined?pos:b.tlPrev;
   if(hit(126.5)&&b.tl&&(b.tl.mode==='toCenter'||b.tl.mode==='close')){b.closeUp=true;b.closeT=0;addShake(9);} /* 2:06.5 特寫開始 */
   if(hit(130.5)&&b.tl&&(b.tl.mode==='close'||b.tl.mode==='toCenter')){kvBurst(b);b.rbT=0;} /* 2:10.5 扭曲波（之後每 2 分鐘再放一次，見 rbT） */
   if(hit(132)&&b.closeUp){b.closeUp=false;b.waveDone=false;if(b.tl&&b.tl.mode==='close')b.tl.mode='hold';} /* 2:12 特寫結束（爆炸後 1.5 秒） */
-  if(b.starFx&&b.starFx.t>=900&&!b.barr&&!b.swd&&!b.closeUp&&!b.rbCharge&&b.tl&&(b.tl.mode==='hold'||b.tl.mode==='close'||b.tl.mode==='toCenter')){b.tl=null;b.ai=0;b.t=0;b.pause=0;} /* 炸出星空 15 秒後（2:25.5）才離開中間、恢復一般移動 */
+  if(b.starFx&&b.starFx.t>=900&&!b.barr&&!b.swd&&!b.closeUp&&!b.rbCharge&&b.tl&&(b.tl.mode==='hold'||b.tl.mode==='close'||b.tl.mode==='toCenter')){b.tl=null;b.ai=0;b.t=0;b.pause=0;if(!b.starFx.rb&&!b.p3after)b.p3after=1;} /* 第一次星空爆炸後：下一招固定擎天火柱 */ /* 炸出星空 15 秒後（2:25.5）才離開中間、恢復一般移動 */
   if(b.waveRing){const r=b.waveRing;r.t++;r.r=(1-Math.pow(1-Math.min(1,r.t/r.T),2))*700;if(r.t<60)addShake(7*(1-r.t/60));if(r.t>=r.T){b.waveRing=null;b.waveDone=true;}}
   if(b.barr){const r=b.barr;r.t++;if(r.t%27===1){const k=(r.t-1)/27;const n0=bullets.length,dir=k%2===0?-1:1;ringShot(r.x,r.y,36,1.5,k*.11,{shape:'kvorb',r:10,col:'#c06aff',dmg:24,life:1100,noFloor:true});for(let i=n0;i<bullets.length;i++){const q=bullets[i];q.orb={cx:r.x,cy:r.y,a:Math.atan2(q.vy,q.vx),r:Math.hypot(q.x-r.x,q.y-r.y),vr:1.5,w:dir*.8};} /* 奇數圈逆時針、偶數圈順時針，邊轉邊往外飛 */SFX.boom();}if(r.t>=27*14+1){b.barr=null;if(KV_SW_ON)b.swd={t:0,n:0,last:-1,waves:[]};}} /* 15 圈彈幕（每 27 幀一圈）；全屏飛劍暫時關閉（KV_SW_ON） */
   if(b.swd)kvSwordStep(b);
@@ -3178,7 +3179,7 @@ function kvArFl(a,th){const t=a.t||0;return 60+22*Math.sin(th*17+t*.21)+14*Math.
 function kvArenaStep(b){const on=b.tl&&b.tl.bodyOff&&!b.dead;if(!b.ar){if(!on||b.tl.mode!=='alone')return;b.ar={h:KV_AR_MAX,cx:WW/2,cy:WH/2,t:0,parts:[]};}
   const a=b.ar;a.t++;a.h+=((on?KV_AR_MIN:KV_AR_MAX+200)-a.h)*(on?.012:.03);if(!on&&a.h>KV_AR_MAX){b.ar=null;return;}
   if(on&&frameN%8===0&&!godMode&&state==='fight')kvHitOthers(cc=>kvArOut(a,cc.x,cc.y),5);if(P&&!P.dead&&on){const c=pc(),out=kvArOut(a,c.x,c.y);if(out&&frameN%8===0&&!godMode&&state==='fight'){P.hp-=5;pop(c.x,P.y-6,5,'#d8b8ff');part(c.x,c.y,3,'#c890ff',1.2,18,1);if(P.hp<=0){P.hp=0;P.iframes=0;P.dashT=0;P.dashI=0;hurt(1);}} /* 圈外灼燒 */
-    a.burn=out;if(out)for(let i=0;i<5;i++){const r=Math.random();parts.push({x:P.x+rnd(-2,P.w+2),y:P.y+rnd(P.h*.1,P.h),vx:rnd(-.4,.4),vy:-rnd(1,2.4),life:rnd(14,28)|0,max:28,col:r<.3?'#ffffff':r<.65?'#e2c8ff':'#a860ff',size:r<.35?3:2});} /* 圈外：玩家身上持續冒紫白色火焰 */}
+    a.burn=out;} /* 圈外身上冒火：改在 kvArFlamesTop 對每個玩家畫（每台都看得到） */
   for(let i=0;i<26;i++){const th=rnd(0,TAU),p=kvArPt(a,th,rnd(0,18)),x=p[0],y=p[1];if(x<VX0-60||x>VX0+VW_+60||y<VY0-60||y>VY0+VH_+60)continue;
     const nx=Math.cos(th),ny=Math.sin(th); /* 火焰：沿邊界散開、往外飄、往上竄 */
     a.parts.push({x,y,vx:nx*rnd(.4,1.3)+rnd(-.15,.15),vy:ny*rnd(.4,1.3)+rnd(-.15,.15), /* 往外擴散 */life:rnd(22,40)|0,max:40,s:rnd(2,6)|0});}
@@ -3198,7 +3199,8 @@ function kvArFlamesTop(){const b=boss;if(!b||b.kind!=='katavina'||!b.ar||state==
   {if(!paused&&Math.random()<.035)KV_ARG.push({th:rnd(0,TAU),t:0,T:Math.round(rnd(80,120))}); /* 隨機處：往圈外擴散的光暈（半徑 150） */
     gg.save();gg.setTransform(VZ,0,0,VZ,-VX0*VZ,-VY0*VZ);for(const q of KV_ARG){if(!paused)q.t++;const u=q.t/q.T,e=1-Math.pow(1-u,2),p=kvArPt(a,q.th,10+110*e),R=Math.round(40+110*e),al=Math.sin(Math.PI*Math.min(1,u))*.8;if(p[0]<VX0-200||p[0]>VX0+VW_+200||p[1]<VY0-200||p[1]>VY0+VH_+200)continue;gg.globalAlpha=al;gg.drawImage(soft(R,'rgba(225,200,255,1)'),p[0]-R,p[1]-R);gg.globalAlpha=al*.6;const r2=Math.round(R*.4);gg.drawImage(soft(r2,'rgba(255,255,255,1)'),p[0]-r2,p[1]-r2);}gg.restore();KV_ARG=KV_ARG.filter(q=>q.t<q.T);}
   {const st=!paused,pls=[];if(P&&!P.dead)pls.push([P,pc()]);if(MP.on)for(const id in MP.robj){const o=MP.robj[id];if(o&&!o.dead)pls.push([o,{x:o.x+P.w/2,y:o.y+P.h/2}]);} /* 玩家穿出火圈：圈外處往外噴、跟著玩家的火粒子；1 秒後不再跟隨，越來越慢並淡出 */
-    for(const [o,c] of pls){const out=kvArOut(a,c.x,c.y);if(out&&o._arIn){o._arEm=22;o._arG=null;}o._arIn=!out;
+    const brn=st&&b.tl&&b.tl.bodyOff&&!b.dead;for(const [o,c] of pls){const out=kvArOut(a,c.x,c.y);if(out&&o._arIn){o._arEm=22;o._arG=null;}o._arIn=!out;
+      if(brn&&out)for(let i=0;i<5;i++){const r=Math.random();parts.push({x:o.x+rnd(-2,P.w+2),y:o.y+rnd(P.h*.1,P.h),vx:rnd(-.4,.4),vy:-rnd(1,2.4),life:rnd(14,28)|0,max:28,col:r<.3?'#ffffff':r<.65?'#e2c8ff':'#a860ff',size:r<.35?3:2});} /* 圈外：每個玩家身上持續冒紫白色火焰（所有人畫面都有） */
       if(st&&o._arEm>0){o._arEm--;if(o._arEm%2===0){const ox=rnd(-14,14),oy=rnd(-22,16);KV_ARX.push({o,ox,oy,x:c.x+ox+rnd(-6,6),y:c.y+oy+rnd(-6,6),vx:0,vy:0,t:0,life:120,s:rnd(3.5,7),w:Math.random()<.5,md:rnd(1,50),fl:rnd(.04,.1)});}}} /* 鬆鬆地跟著玩家（不完全黏住），數量減少 */
     for(const q of KV_ARX){if(st){q.t++;if(q.o){const c=q.o===P?pc():{x:q.o.x+P.w/2,y:q.o.y+P.h/2},tx=c.x+q.ox,ty=c.y+q.oy-q.t*.15,px=q.x,py=q.y;q.x+=(tx-q.x)*q.fl;q.y+=(ty-q.y)*q.fl;q.vx=q.x-px;q.vy=q.y-py; /* 跟著玩家，移動時被拉在後面 */q.over=Math.hypot(tx-q.x,ty-q.y)>q.md;if(q.t>90)q.o=null; /* 拉開超過各自的隨機距離（1～50）才可以停止 */}else{q.x+=q.vx;q.y+=q.vy;q.vx*=.88;q.vy*=.88;}}
       const x=q.x,y=q.y;
@@ -3375,7 +3377,7 @@ function kvEyeDots(){const b=boss;if(!b||b.kind!=='katavina'||b.dead||b.hidden||
   for(const ex of [e[0],e[2]]){gg.globalAlpha=.8*ea;gg.drawImage(soft(9,'rgba(230,140,255,.95)'),ex-9,e[1]-9);}gg.globalAlpha=1;}
 function kvPilGlowDraw(){if(KV_PBG<=0)return;const a=KV_PBG/120,w=cv.width,h=cv.height,gr=cx.createLinearGradient(0,h,0,h*.55);gr.addColorStop(0,`rgba(190,90,255,${.75*a})`);gr.addColorStop(.4,`rgba(150,60,240,${.3*a})`);gr.addColorStop(1,'rgba(120,40,220,0)');
   cx.save();cx.setTransform(1,0,0,1,0,0);cx.globalCompositeOperation='lighter';cx.fillStyle=gr;cx.fillRect(0,h*.55,w,h*.45);cx.restore();} /* 玩家離地太高時：畫面下方紫色光暈 */
-function kvPillarsStart(b){b.pil=[];for(let w=0;w<5;w++){let first=true;for(let x=45+90*(w%2);x<=WW-30;x+=180){b.pil.push({x,d:w*120,t:-w*120,f:((x/120)*5)%12|0,first,w});first=false;}}SFX.glint&&SFX.glint();}
+function kvPillarsStart(b,nw){b.pil=[];for(let w=0;w<(nw||5);w++){let first=true;for(let x=45+90*(w%2);x<=WW-30;x+=180){b.pil.push({x,d:w*120,t:-w*120,f:((x/120)*5)%12|0,first,w});first=false;}}SFX.glint&&SFX.glint();}
 // 擎天火柱也當一般招式輪替使用：先飛到玩家畫面上方 1 秒，再放 5 波，放完才換下一招
 /* ===== 第三階段招式：核心吸入粒子＋扭曲＋大橫向十字光閃爍，射出 6 道（左右各 3）向內收的光束瞄準玩家最後位置 → 收成巨大光束（發抖、雙手舉起張開）往玩家方向旋轉一圈半，最後變慢淡出 ===== */
 const KV_CB_CH=150,KV_CB_ROT=720,KV_CB_FADE=0,KV_CB_W=34; /* 旋轉一圈半 12 秒 */
@@ -3613,11 +3615,11 @@ function kvRockPost(){const b=boss;if(!b||b.kind!=='katavina')return;const X=KV_
     kvDistortRing((w.x-VX0)*VZ,(w.y-VY0)*VZ,(w.r-w.bw*.3)*VZ,w.bw*.5*VZ,(w.big?40:16)*(1-e)*VZ,1);}
   g.restore();}
 function kvChase(b,sp=1){const c=b._C?b._C():pc(),tx=clamp(c.x,140,WW-140),ty=clamp(c.y-140+Math.sin((b.anim||0)/40)*18,260,GROUND-156),mx=4*sp;b.vx=lerp(b.vx||0,clamp((tx-b.x)*.04*sp,-mx,mx),.08);b.vy=lerp(b.vy||0,clamp((ty-b.y)*.04*sp,-mx,mx),.08);b.x+=b.vx;b.y+=b.vy;if(Math.abs(b.vx)>.3)b.face=b.vx<0?-1:1;} /* 放招期間追玩家（同『上方』的動作） */
-function kvPillarsMove(b,t){if(t===0){b._pmS=false;const k=b.p3clk||0;if((k>=78-14&&k<78)||b.starFx)return true;} /* 星空期間也不放 */ /* 皇女為主（1:18）前約 14 秒內不放擎天火柱，直接換下一招 */
+function kvPillarsMove(b,t){if(t===0){b._pmS=false;const k=b.p3clk||0;if(!b._pil3&&((k>=78-14&&k<78)||b.starFx))return true;} /* 星空期間也不放 */ /* 皇女為主（1:18）前約 14 秒內不放擎天火柱，直接換下一招 */
   if(!b._pmS){const c=pc(),tx=clamp(c.x,160,WW-160),ty=clamp(VY0+VH_*.4,260,GROUND-156);
     b.vx=lerp(b.vx,clamp((tx-b.x)*.06,-7,7),.15);b.vy=lerp(b.vy,clamp((ty-b.y)*.06,-7,7),.15);b.x+=b.vx;b.y+=b.vy;if(Math.abs(b.vx)>.3)b.face=b.vx<0?-1:1;
-    if(t>=60&&!b.pil){b._pmS=true;kvPillarsStart(b);}return false;}
-  kvChase(b);return !b.pil;}
+    if(t>=60&&!b.pil){b._pmS=true;kvPillarsStart(b,b._pil3?3:5);}return false;}
+  kvChase(b);if(!b.pil&&b._pil3){b._pil3=false;b.noPil=true;b.p3elite=true;b.e2T=2400-120;} /* 星空後的擎天火柱（3 波）放完：不再放，開始出現菁英怪 */return !b.pil;}
 function kvPillarsStep(b){if(!b.pil)return;const c=pc();let alive=false;
   for(const q of b.pil){q.t++;const t=q.t;if(t<0){alive=true;continue;}const T1=KV_PIL_TELE,T2=T1+KV_PIL_GROW,T3=T2+KV_PIL_HOLD,T4=T3+KV_PIL_FADE;if(t<=T4)alive=true;
     if(t===1&&q.first)SFX.glint&&SFX.glint();
@@ -3846,8 +3848,8 @@ function drawHUD(){
     for(let i=0;i<hearts;i++){const x=W-14-(hearts-1-i)*11+rnd(-.9,.9),y=8+rnd(-.9,.9); /* 每顆愛心隨機發抖 */
       cx.save();cx.shadowColor='#c46aff';cx.shadowBlur=7*S;for(const [dx,dy] of [[-.5,0],[.5,0],[0,-.5],[0,.5]])spr2(ol,x+dx,y+dy);cx.restore(); /* 紫色外框（發光） */
       tx.globalCompositeOperation='source-over';tx.clearRect(0,0,w,h);tx.imageSmoothingEnabled=false;tx.drawImage(hs,0,0,w,h);
-      {tx.globalCompositeOperation='source-in';const X0=Math.round(x*S),Y0=Math.round(y*S),per=360*S,gx=-((frameN*1.2)%per)-X0,gr=tx.createLinearGradient(gx,0,gx+per*2,0);for(let k=0;k<=16;k++)gr.addColorStop(k/16,k%2?'#3a1a72':'#140a2c');tx.fillStyle=gr;tx.fillRect(0,0,w,h);tx.globalCompositeOperation='source-atop'; /* 跟 Boss 血條一樣：星雲帶＋移動的星星（所有愛心像同一片星空的小窗） */
-        const sx0=(W-14-9*11)*S,span=(9*11+12)*S;for(let k=0;k<46;k++){const ux=sx0+((k*37.7+frameN*(.4+(k%5)*.15))%span),uy=(8*S)+((k*53)%Math.floor(8*S)),lx=ux-X0,ly=uy-(Y0-8*S+ (y-8)*0);if(lx<-2||lx>w+2)continue;const br=(Math.sin(frameN*.15+k)+1)/2,ps=Math.max(1,Math.round(S*(k%4===0?.8:.45)));tx.fillStyle=br>.55?'#ffffff':'#cbb6ff';tx.fillRect(Math.round(lx),Math.round(uy-8*S),ps,ps);}} /* 內部：移動的星空 */
+      {tx.globalCompositeOperation='source-in';const X0=Math.round(x*S),Y0=Math.round(y*S),per=360*S,gx=-((frameN*1.2)%per)-X0,gr=tx.createLinearGradient(gx,0,gx+per*2,0);for(let k=0;k<=16;k++)gr.addColorStop(k/16,k%2?'#22104a':'#0a0518');tx.fillStyle=gr;tx.fillRect(0,0,w,h);tx.globalCompositeOperation='source-atop'; /* 跟 Boss 血條一樣：星雲帶＋移動的星星（所有愛心像同一片星空的小窗） */
+        const sx0=(W-14-9*11)*S,span=(9*11+12)*S;for(let k=0;k<46;k++){const ux=sx0+((k*37.7+frameN*(.4+(k%5)*.15))%span),uy=(8*S)+((k*53)%Math.floor(8*S)),lx=ux-X0,ly=uy-(Y0-8*S+ (y-8)*0);if(lx<-2||lx>w+2)continue;const br=(Math.sin(frameN*.15+k)+1)/2,ps=Math.max(1,Math.round(S*(k%4===0?.8:.45)));tx.fillStyle=br>.55?'#d8ccf0':'#8f7ac0';tx.fillRect(Math.round(lx),Math.round(uy-8*S),ps,ps);}} /* 內部：移動的星空 */
       cx.drawImage(tc,Math.round(x*S),Math.round(y*S));}}
   else for(let i=0;i<hearts;i++){const x=W-14-(hearts-1-i)*11,y=8,v=clamp((p.hp-i*per)/per,0,1);
     spr2(heartSpr('#2a2a32','#1c1c22'),x,y);if(v>0){cx.save();cx.beginPath();cx.rect(x*S,y*S,9*S*v,8*S);cx.clip();spr2(heartSpr(p.hp/p.mhp<.3?'#ff4060':'#f2f2f6',p.hp/p.mhp<.3?'#a01428':'#b4b4c4'),x,y);cx.restore();}}
@@ -3870,7 +3872,7 @@ function drawHUD(){
     cx.save();cx.translate(W/2*S,(H-6)*S);cx.scale(.85,.85);cx.translate(-W/2*S,-(H-6)*S); /* Boss 血條縮小 15%（以底部中央為基準） */
     R(x0-3,y0-3,bw+6,12,'#08080c');R(x0-2,y0-2,bw+4,1,'#8a8a9a');R(x0-2,y0+8,bw+4,1,'#3a3a46');
     const sb=b.kind==='katavina'&&b.starFx&&!b.dead; /* 星空期間：Boss 血條變成紫色外框＋移動的星空，看不到剩餘血量 */
-    if(sb){const ST=kvStars();cx.save();cx.shadowColor='#c46aff';cx.shadowBlur=10*S;R(x0-2,y0-2,bw+4,11,'#c46aff');cx.restore(); /* 紫色外框（發光） */R(x0-1,y0-1,bw+2,9,'#08040f');R(x0,y0,bw,7,'#120826');{cx.save();cx.beginPath();cx.rect(Math.round(x0*S),Math.round(y0*S),Math.round(bw*S),Math.round(7*S));cx.clip();const gx=x0*S-((frameN*1.2)%(bw*S)),gr=cx.createLinearGradient(gx,0,gx+bw*S*2,0);for(let k=0;k<=8;k++)gr.addColorStop(k/8,k%2?'#3a1a72':'#140a2c');cx.fillStyle=gr;cx.fillRect(x0*S,y0*S,bw*S,7*S);for(let k=0;k<70;k++){const sx=x0*S+((k*137.5+frameN*(.4+(k%5)*.15))%(bw*S)),sy=y0*S+((k*53)%Math.floor(7*S)),br=(Math.sin(frameN*.15+k)+1)/2,ps=Math.max(1,Math.round(S*(k%4===0?.8:.45)));cx.fillStyle=br>.55?'#ffffff':'#cbb6ff';cx.fillRect(Math.round(sx),Math.round(sy),ps,ps);}cx.restore();} /* 星雲＋移動的星星 */if(false){cx.save();cx.beginPath();cx.rect(Math.round(x0*S),Math.round(y0*S),Math.round(bw*S),Math.round(7*S));cx.clip();cx.imageSmoothingEnabled=false;const ox=x0*S-((frameN*.6)%ST.width),oy=y0*S-((frameN*.12)%ST.height);for(let k=-1;k<=Math.ceil(bw*S/ST.width)+1;k++)for(const dy of [0,ST.height])cx.drawImage(ST,ox+k*ST.width,oy+dy-ST.height*0);cx.globalCompositeOperation='lighter';cx.globalAlpha=.6;for(let k=-1;k<=Math.ceil(bw*S/ST.width)+1;k++)cx.drawImage(ST,ox*1.3+k*ST.width,oy);cx.restore();}cx.shadowColor='#c46aff';cx.shadowBlur=8*S;R(x0-2,y0-2,bw+4,1,'#e0c0ff');R(x0-2,y0+8,bw+4,1,'#c46aff');cx.shadowBlur=0;}
+    if(sb){const ST=kvStars();cx.save();cx.shadowColor='#c46aff';cx.shadowBlur=10*S;R(x0-2,y0-2,bw+4,11,'#c46aff');cx.restore(); /* 紫色外框（發光） */R(x0-1,y0-1,bw+2,9,'#08040f');R(x0,y0,bw,7,'#120826');{cx.save();cx.beginPath();cx.rect(Math.round(x0*S),Math.round(y0*S),Math.round(bw*S),Math.round(7*S));cx.clip();const gx=x0*S-((frameN*1.2)%(bw*S)),gr=cx.createLinearGradient(gx,0,gx+bw*S*2,0);for(let k=0;k<=8;k++)gr.addColorStop(k/8,k%2?'#22104a':'#0a0518');cx.fillStyle=gr;cx.fillRect(x0*S,y0*S,bw*S,7*S);for(let k=0;k<70;k++){const sx=x0*S+((k*137.5+frameN*(.4+(k%5)*.15))%(bw*S)),sy=y0*S+((k*53)%Math.floor(7*S)),br=(Math.sin(frameN*.15+k)+1)/2,ps=Math.max(1,Math.round(S*(k%4===0?.8:.45)));cx.fillStyle=br>.55?'#d8ccf0':'#8f7ac0';cx.fillRect(Math.round(sx),Math.round(sy),ps,ps);}cx.restore();} /* 星雲＋移動的星星 */if(false){cx.save();cx.beginPath();cx.rect(Math.round(x0*S),Math.round(y0*S),Math.round(bw*S),Math.round(7*S));cx.clip();cx.imageSmoothingEnabled=false;const ox=x0*S-((frameN*.6)%ST.width),oy=y0*S-((frameN*.12)%ST.height);for(let k=-1;k<=Math.ceil(bw*S/ST.width)+1;k++)for(const dy of [0,ST.height])cx.drawImage(ST,ox+k*ST.width,oy+dy-ST.height*0);cx.globalCompositeOperation='lighter';cx.globalAlpha=.6;for(let k=-1;k<=Math.ceil(bw*S/ST.width)+1;k++)cx.drawImage(ST,ox*1.3+k*ST.width,oy);cx.restore();}cx.shadowColor='#c46aff';cx.shadowBlur=8*S;R(x0-2,y0-2,bw+4,1,'#e0c0ff');R(x0-2,y0+8,bw+4,1,'#c46aff');cx.shadowBlur=0;}
     else{R(x0,y0,bw,7,'#1a0a0e');R(x0,y0,bw*b.ghostHp/b.mhp,7,'#f0e0e0');}
     if(sb){}else if(b.kind==='mirror')drawBossFireBar(b,x0,y0,bw*b.hp/b.mhp);
     else{const col=b.inv>0?'#555':b.col;cx.shadowColor=col;cx.shadowBlur=8*S;R(x0,y0,bw*b.hp/b.mhp,7,col);cx.shadowBlur=0;
@@ -4141,11 +4143,11 @@ function mpRepB(k,v){if(k==='')return v;if(typeof v==='function'||MPSKIPALL.has(
 function mpRep(k,v){if(typeof v==='function'||MPSKIP.has(k))return undefined;if(v===boss)return '$B';if(v&&typeof v==='object'){if(v===MP.realP||v===P||v instanceof HTMLCanvasElement||v instanceof HTMLImageElement)return undefined;const ci=COMBO.indexOf(v);if(ci>=0)return {$cd:ci};}if(typeof v==='number')return Math.round(v*100)/100;return v;}
 function mpRev(k,v){if(v==='$B')return boss;if(v&&typeof v==='object'&&v.$cd!==undefined)return COMBO[v.$cd];return v;}
 function mpSnap(){const o={t:'snap',tk:MP.tick};
-  o.b=boss?JSON.stringify(boss,mpRepB):null;for(const q of bullets)if(q.__i==null)q.__i=MP.bid=(MP.bid||0)+1; /* 彈幕編號：成員端用來對應同一顆彈幕、平滑銜接 */o.bl=JSON.stringify(bullets,mpRep);
+  o.b=boss?JSON.stringify(boss,mpRepB):null;for(const q of bullets)if(q.__i==null)q.__i=MP.bid=(MP.bid||0)+1; /* 彈幕編號：成員端用來對應同一顆彈幕、平滑銜接 */o.bl=JSON.stringify(bullets,(k,v)=>k==='th'?undefined:mpRep(k,v)); /* 彈幕拖尾不傳（成員端自己記），封包小很多 */
   o.sk=JSON.stringify(strikes.filter(s=>!s.done).map(s=>({id:s.id,kind:s.kind,life:s.life,parry:s.parry,dmg:s.dmg,low:s.low,x:s.x,y:s.y,r:s.r,R:s.R,a0:s.a0,a1:s.a1,a:s.a,sg:s.kind==='cap'&&s.seg?s.seg():null,bb:!!s.b})),mpRep);
   o.ao=JSON.stringify(aoes,mpRep);o.la=JSON.stringify(lasers,mpRep);
   const nf=[];for(const f of fx){if(!f.__s){f.__s=1;if(f.type!=='wisp')nf.push(f);}}o.fx=JSON.stringify(nf,mpRep);
-  if(boss&&boss.kind==='katavina'){const tg=a=>{if(a)for(const q of a)if(q&&q.__i==null)q.__i=MP.oid=(MP.oid||0)+1;};tg(boss.dIn);tg(boss.p3in);if(boss.bh)tg(boss.bh.parts);if(boss.cb)tg(boss.cb.parts);tg(KV_DEBRIS);} /* 粒子／碎片編號：成員端本地模擬、用編號接續 */
+  if(boss&&boss.kind==='katavina'){const tg=a=>{if(a)for(const q of a)if(q&&q.__i==null)q.__i=MP.oid=(MP.oid||0)+1;};tg(boss.dIn);tg(boss.p3in);if(boss.bh)tg(boss.bh.parts);if(boss.cb)tg(boss.cb.parts);tg(KV_DEBRIS);if(boss.psw)tg(boss.psw.sw);if(boss.swd)tg(boss.swd.waves);} /* 粒子／碎片編號：成員端本地模擬、用編號接續 */
   if(boss&&boss.kind==='katavina')o.kv=JSON.stringify({cps:KV_CORPSE,pl:PLATS,mobs:KV_MOBS,rk:KV_RK,sh:KV_SHARDS,wr:KV_CP_WRECK,cd:KV_CH_DROP,db:KV_DEBRIS,pdk:KV_PDK,mol:KV_MOBOL},mpRep); /* 卡塔薇娜：場上物件／特效狀態 */
   o.q=JSON.stringify(MP.q);MP.q={sfx:[],gh:[],rs:[]};
   o.pl=[{id:'h',s:mpMyState()}].concat(Object.keys(MP.rs).map(id=>({id,s:MP.rs[id]})));
@@ -4159,7 +4161,7 @@ function mpApplySnap(o){if(state!=='fight'||!boss)return;MP.rtk=o.tk;if(o.tk!=nu
     if(boss.twins)boss.twins.forEach((w,i)=>{w.hair=(tw&&tw[i]&&tw[i].hair)||makeChain(9,w.x,w.y-40);});
     boss._tx=boss.x;boss._ty=boss.y;if(Math.hypot(boss.x-ox,boss.y-oy)<160){boss.x=ox;boss.y=oy;}
     mpXPrep(nb);}}
-  {const om=new Map();for(const q of bullets)if(q.__i!=null)om.set(q.__i,q);bullets=JSON.parse(o.bl,mpRev);for(const q of bullets){const p=boss.kind==='katavina'&&q.__i!=null&&om.get(q.__i);const L=MP.lead||0;if(p&&Math.hypot(q.x-p.x,q.y-p.y)<120){q._ex=q.x+q.vx*L-p.x;q._ey=q.y+q.vy*L-p.y;q.x=p.x;q.y=p.y;if(p.th)q.th=p.th;if(q.orb&&L>0){const o=q.orb;for(let k=0;k<L;k++){o.r+=o.vr;o.a+=o.w/Math.max(40,o.r);}} /* 螺旋彈幕：用房主的參數（往前推到現在），不沿用本地累積的誤差 */}}} /* 同一顆彈幕：保留畫面位置，誤差分幾幀補上（不會一跳一跳） */
+  {const om=new Map();for(const q of bullets)if(q.__i!=null)om.set(q.__i,q);bullets=JSON.parse(o.bl,mpRev);for(const q of bullets){const p=boss.kind==='katavina'&&q.__i!=null&&om.get(q.__i);const L=MP.lead||0;if(p&&Math.hypot(q.x-p.x,q.y-p.y)<120){q._ex=q.x+q.vx*L-p.x;q._ey=q.y+q.vy*L-p.y;q.x=p.x;q.y=p.y;if(p.th)q.th=p.th;if(q.orb){const o=q.orb;for(let k=0;k<L;k++){o.r+=o.vr;o.a+=o.w/Math.max(40,o.r);}if(p.orb){const po=p.orb;o.r=po.r+(o.r-po.r)*.25;o.a=po.a+Math.atan2(Math.sin(o.a-po.a),Math.cos(o.a-po.a))*.25;}} /* 螺旋彈幕：本地參數慢慢修正到房主的，不跳動也不累積誤差 */ /* 螺旋彈幕：用房主的參數（往前推到現在），不沿用本地累積的誤差 */}}} /* 同一顆彈幕：保留畫面位置，誤差分幾幀補上（不會一跳一跳） */
   strikes=JSON.parse(o.sk,mpRev).filter(s=>!MP.hitIds.has(s.id)).map(s=>{if(s.bb)s.b=boss;if(s.sg){const sg=s.sg;s.seg=()=>sg;}s.done=false;return s;});
   aoes=JSON.parse(o.ao,mpRev);lasers=JSON.parse(o.la,mpRev);
   const exM=execT>0; // 自己正在被處決時，特效音效由本地處決動畫負責
@@ -4187,14 +4189,14 @@ const KV_SSKIP=new Set(['fly','boulder','waves','smoke','ells','rings','ghosts',
 function kvSRoot(){return {rk:KV_RK,sh:KV_SHARDS,wr:KV_CP_WRECK,cd:KV_CH_DROP};}
 const KV_BSKIP=new Set([...MP_XSKIP,'dIn','parts','p3in']);
 function mpIdMerge(oA,nA,dead){if(!Array.isArray(nA))return nA;const m=new Map();if(oA)for(const q of oA)if(q&&q.__i!=null)m.set(q.__i,q);const out=[];for(const q of nA){if(!q||q.__i==null){out.push(q);continue;}const o=m.get(q.__i);if(o)out.push(o);else if(!dead.has(q.__i))out.push(q);}return out;} /* 同編號的保留本地那份（本地模擬才順） */
-function mpSWalk(o,pre,d,out,skip){for(const k in o){if(skip.has(k))continue;const v=o[k],p=pre?pre+'\u0001'+k:k;if(typeof v==='number'){if(isFinite(v))out.set(p,v);}else if(Array.isArray(v))out.set(p+'\u0002',v.length);if(typeof v==='number'){}else if(v&&typeof v==='object'&&d<4&&!(Array.isArray(v)&&v.length>120)&&!(v instanceof HTMLCanvasElement||v instanceof HTMLImageElement))mpSWalk(v,p,d+1,out,skip);}}
-function mpSGet(r,pa){let o=r;for(let i=0;i<pa.length-1&&o;i++)o=o[pa[i]];return o&&typeof o==='object'?o:null;}
+function mpSWalk(o,pre,d,out,skip){const oa=Array.isArray(o);for(const k in o){if(skip.has(k))continue;const v=o[k],kk=oa&&v&&typeof v==='object'&&v.__i!=null?'#'+v.__i:k,p=pre?pre+'\u0001'+kk:kk;if(typeof v==='number'){if(isFinite(v))out.set(p,v);}else if(Array.isArray(v)&&!(v.length&&v[0]&&v[0].__i!=null))out.set(p+'\u0002',v.length); /* 有編號的陣列用編號對應（元素增減也能接續平滑） */if(typeof v==='number'){}else if(v&&typeof v==='object'&&d<4&&!(Array.isArray(v)&&v.length>120)&&!(v instanceof HTMLCanvasElement||v instanceof HTMLImageElement))mpSWalk(v,p,d+1,out,skip);}}
+function mpSGet(r,pa){let o=r;for(let i=0;i<pa.length-1&&o;i++){const s=pa[i];if(s[0]==='#'&&Array.isArray(o)){const id=+s.slice(1);o=o.find(q=>q&&q.__i===id);}else o=o[s];}return o&&typeof o==='object'?o:null;}
 function mpSPrep(S,D,root,skip){const C=new Map();mpSWalk(root,'',0,C,skip);const tk=MP.rtk,n=tk!=null&&S.tk!=null?Math.max(1,Math.min(12,tk-S.tk)):Math.max(1,Math.min(6,frameN-(S.f==null?frameN-3:S.f)));S.tk=tk;S.f=frameN;S.age=MP.lead||0; /* 用房主的幀號算速度（網路一次送到兩包也不會算錯） */const E=[];
   const bad=[];if(S.prev&&D)for(const [k,c] of C)if(k.endsWith('\u0002')&&(S.prev.get(k)!==c||D.get(k)!==c))bad.push(k.slice(0,-1)+'\u0001'); /* 陣列長度變了（有元素加入／移除）：同索引可能已是別的物件，不接續 */
   if(S.prev&&D)for(const [k,c] of C){if(k.endsWith('\u0002'))continue;if(bad.length&&bad.some(bp=>k.startsWith(bp)))continue;const p=S.prev.get(k);if(p===undefined)continue;let vel=(c-p)/n;if(Math.abs(vel)>60)continue;let it=false;if(Number.isInteger(c)&&Number.isInteger(p)){const r=Math.round(vel);if(Math.abs(vel-r)<.34){vel=r;it=true;}}if(vel===0)continue;
-    const d=D.get(k);if(d===undefined||Math.abs(d-c-vel*S.age)>Math.max(Math.abs(vel)*6,1.5+Math.abs(c)*.04))continue;const pa=k.split('\u0001'),o=mpSGet(root,pa);if(!o)continue;const kk=pa[pa.length-1];o[kk]=it?Math.round(d):d;E.push([pa,c,vel,it]);}
+    const d=D.get(k);if(d===undefined||Math.abs(d-c-vel*S.age)>Math.max(Math.abs(vel)*6,1.5+Math.abs(c)*.04))continue;const pa=k.split('\u0001'),o=mpSGet(root,pa);if(!o)continue;const kk=pa[pa.length-1];o[kk]=it?Math.round(d):d;E.push([pa,c,vel,it,k.indexOf('\u0001#')>=0?o:null]);}
   S.prev=C;S.E=E;}
-function mpSStep(S,root){if(!S||!S.E||!root)return;if(++S.age>14)return;for(const [pa,c,vel,it] of S.E){const o=mpSGet(root,pa);if(!o)continue;const kk=pa[pa.length-1];let v=o[kk];if(typeof v!=='number')continue;const tg=c+vel*S.age;v+=vel;if(it){const er=tg-v;if(er>=1)v+=1;else if(er<=-1)v-=1;}else v+=(tg-v)*.3;o[kk]=v;}}
+function mpSStep(S,root){if(!S||!S.E||!root)return;if(++S.age>14)return;for(const [pa,c,vel,it,oc] of S.E){const o=oc||mpSGet(root,pa);if(!o)continue;const kk=pa[pa.length-1];let v=o[kk];if(typeof v!=='number')continue;const tg=c+vel*S.age;v+=vel;if(it){const er=tg-v;if(er>=1)v+=1;else if(er<=-1)v-=1;}else v+=(tg-v)*.3;o[kk]=v;}}
 function mpClientBoss(){const b=boss;if(!b)return;b.anim++;MP.clk=(MP.clk||0)+1;if(b.kind==='katavina'){mpSStep(MP.sB,b);mpSStep(MP.sK,kvSRoot());}else mpXStep(b);for(const q of bullets)if(q._ex!=null){const kx=q._ex*.12,ky=q._ey*.12;q.x+=kx;q.y+=ky;q._ex-=kx;q._ey-=ky;if(Math.abs(q._ex)+Math.abs(q._ey)<.2)q._ex=q._ey=null;}if(b._tx!==undefined){b.x+=(b._tx-b.x)*.4;b.y+=(b._ty-b.y)*.4;}
   if(!b.dormant)bossChain(b);
   if(b.last&&b.lc&&b.lR&&P&&!P.dead){const c=pc(),dx=c.x-b.lc.x,dy=c.y-b.lc.y,d=Math.hypot(dx,dy)||1,lim=b.lR-10;
@@ -4259,7 +4261,7 @@ function mpDrawRemotes(){if(!MP.on)return;
     {const L=o.rclS||[],A=o.rcl=o.rcl||[];A.length=Math.min(A.length,L.length); /* 其他人法杖的分身 */
       for(let i=0;i<L.length;i++){const v=L[i];let c=A[i];if(!c){c=A[i]=newPlayer();c.isClone=true;c.x=v[0];c.y=v[1];c.rx=Math.round(c.x+c.w/2);c.ry=c.y+c.h;c.hair=makeChain(9,c.rx,c.ry-40);c.wtr=[];}
         if(c._sv!==v){c._sv=v;c._age=0;}else c._age=Math.min(6,(c._age||0)+1);const tx=v[0]+v[2]*c._age,ty=Math.min(GROUND-c.h,v[1]+v[3]*c._age);if(Math.hypot(tx-c.x,ty-c.y)>200){c.x=tx;c.y=ty;}else{c.x+=(tx-c.x)*.5;c.y+=(ty-c.y)*.5;}
-        Object.assign(c,{vx:v[2],vy:v[3],face:v[4],onG:!!v[5],weapon:v[6],gunLA:v[7],sw:v[8]?(c.sw||{cd:{}}):null,bladeL:v[10],al:v[11],sheathed:!!v[12],flying:!!v[13]});c.swLA=c.swLA===undefined?v[9]:c.swLA+angDiff(c.swLA,v[9])*.5;
+        Object.assign(c,{vx:v[2],vy:v[3],face:v[4],onG:!!v[5],weapon:v[6],gunLA:v[7],sw:v[8]?(c.sw||{cd:{}}):null,bladeL:v[10],al:v[11],sheathed:!!v[12],flying:!!v[13]});c.swLA=c.swLA===undefined?v[9]:c.swLA+angDiff(c.swLA,v[9])*.5;c.rx=Math.round(c.x+c.w/2);c.ry=c.y+c.h; /* 分身跟著位置移動 */
         try{const out=cRig.render(x=>drawPlayerRig(x,c,PC));const sn=snapRig(out,'#b98cff');gg.save();gg.globalAlpha=.35*c.al*.7;gg.drawImage(sn,c.rx-cRig.ox,c.ry-cRig.oy);gg.restore();sn.used=false;g.save();g.globalAlpha=.7*c.al*.7;drawRigAt(cRig,out,c.rx,c.ry);g.restore();}catch(e){}}}
     o._ol=null;if(typeof kvStarOn==='function'&&boss&&boss.kind==='katavina'&&boss.starFx){try{o._ol=[kvOutline(snapRig(out,'#c46aff'),null,o._olr=o._olr||{}),Math.round(o.rx)-rg.ox-2,Math.round(o.ry)-rg.oy-2];}catch(e){}} /* 星空期間：其他人也要有輪廓 */
     // 遠端玩家：閃避殘影＋刃光＋月牙刀光
