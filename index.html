@@ -4399,7 +4399,7 @@ function wpnHas(id){return LOADOUT.a===id||LOADOUT.b===id;}
 function wpnBookHeal(p){if(p.bookCD>0||p.dead)return;if(p.hp>=p.mhp)return;healFxSet(p,24,36,60);const c=pc(),hl=Math.min(Math.round(p.mhp*.3),p.mhp-p.hp);p.hp+=hl;p.bookCD=noPotCD?0:2700;if(p===P)stats.books++;pop(c.x,p.y-10,'+'+hl,'#8cffb0');SFX.heal();part(c.x,c.y,24,'#8cffb0',1.6,40);}
 // 數值（各武器 DPS 調成差不多，見訓練場）
 const KAT_MK=1.087,KAT_QK=.84; /* 近戰：近身 70%／劍氣 30% */
-const WPN_ST={staff:{cd:15,dmg:15,spd:5.95, /* 魔彈射速 -30% */life:90,turn:.12,laser:10,laserL:520,waveCD:30,waveDmg:45, /* 大法陣光波 DPS 約 90 */waveSpd:26,waveH:64,waveLen:120},kunai:{cd:4,dmg:6.67, /* DPS 約 100 */spd:16.8,turn:.5,range:400,slow:90,seek:250,seekN:25, /* 平常追蹤範圍減半 */lockSpd:1.3,lockT:240,backR:300},sniper:{cd:50,dmg:85, /* DPS 約 100 */spd:110,life:16} /* 彈道加速（射程不變） */,book:{cd:24,heal:1,spd:12.25,life:240}};
+const WPN_ST={staff:{cd:15,dmg:8.75,beam:32.5, /* 方式一：DPS 約 100＝追蹤球 35%（8.75×4/秒）＋光束 65%（32.5×2/秒） */spd:5.95, /* 魔彈射速 -30% */life:90,turn:.12,laser:10,laserL:520,waveCD:30,waveDmg:45, /* 大法陣光波 DPS 約 90 */waveSpd:26,waveH:64,waveLen:120},kunai:{cd:4,dmg:6.67, /* DPS 約 100 */spd:16.8,turn:.5,range:400,slow:90,seek:250,seekN:25, /* 平常追蹤範圍減半 */lockSpd:1.3,lockT:240,backR:300},sniper:{cd:50,dmg:85, /* DPS 約 100 */spd:110,life:16} /* 彈道加速（射程不變） */,book:{cd:24,heal:1,spd:12.25,life:240}};
 const WPN_MZ={gun:14,staff:22,kunai:7,sniper:34,book:7}; /* 槍口／法杖頭／手持點到手的距離 */
 let PWP=[]; /* 新武器的投射物 */
 const wpnMouse=()=>({x:VX0+mouse.x/VZ,y:VY0+mouse.y/VZ});
@@ -4475,7 +4475,7 @@ function wpnFire(p,st,aim){const S=WPN_ST[p.weapon];let dbl=false;if(p.snDblT>0)
       const bx=mz[0]+Math.cos(aim)*12,by=mz[1]+Math.sin(aim)*12;PWP.push({k:'sbig',x:bx,y:by,a:aim,life:22,max:22});
       PWP.push({k:'swave',x:bx,y:by,px:bx,py:by,vx:Math.cos(aim)*S.waveSpd,vy:Math.sin(aim)*S.waveSpd,a:aim,life:999,max:999,d:0,dmg:S.waveDmg});SFX.laser?SFX.laser():SFX.qi&&SFX.qi();addShake(1.5);}
     else{p.staffFx=24;PWP.push({k:'staff',x:mz[0],y:mz[1],px:mz[0],py:mz[1],vx:Math.cos(aim)*S.spd,vy:Math.sin(aim)*S.spd,life:S.life,dmg:S.dmg,tr:[]}); /* 追蹤魔彈：射出音效移除 */
-      if(p.staffN%2===0){const c=pc(),N=1+Math.floor(Math.random()*3); /* 每兩下：玩家身後隨機位置出現 1～3 個法陣，各射一發雷射，法陣跟著玩家 */
+      if(p.staffN%2===0){const c=pc(),N=1; /* 每兩下：1 個法陣、1 道光束 */ /* 每兩下：玩家身後隨機位置出現 1～3 個法陣，各射一發雷射，法陣跟著玩家 */
         for(let i=0;i<N;i++){const ba=aim+Math.PI+(N>1?-1.1+2.2*(i+rnd(.15,.85))/N:rnd(-1.1,1.1)),d=rnd(22,46);PWP.push({k:'scirc',ox:Math.cos(ba)*d,oy:-10+Math.sin(ba)*d,x:c.x,y:c.y,life:20+i*3,max:20+i*3,n:1,fired:0,t:-i*3});}}}}
   else if(p.weapon==='kunai'){p.kunN=(p.kunN||0)+1;const back=p.kunN%2===0,c=pc();let x,y,a; /* 前方、背後輪流射出 */
     const pw=!!(P.kunM&&P.kunM.act),tn=wpnNearPt(c.x,c.y,wpnKunTargets()); /* 玩家後方的目標（準星不在它附近）不算；飛刀條滿前不會從後方丟 */if(!pw||!tn||Math.hypot(tn.x-c.x,tn.y-c.y)>WPN_ST.kunai.backR){const a2=aim+rnd(-.14,.14); /* 目標離玩家超過 300：直接從前方丟（散度大一點） */
@@ -4487,9 +4487,9 @@ function wpnFire(p,st,aim){const S=WPN_ST[p.weapon];let dbl=false;if(p.snDblT>0)
     {const c=pc();for(let i=0;i<18;i++){const b=aim+Math.PI+rnd(-.7,.7),sp=rnd(.4,2.4);parts.push({x:c.x-Math.cos(aim)*8+rnd(-3,3),y:c.y-6+rnd(-4,4),vx:Math.cos(b)*sp,vy:Math.sin(b)*sp-rnd(0,.3),life:rnd(30,60),max:60,col:Math.random()<.5?'#8a8498':Math.random()<.5?'#b8b0c8':'#5a5468',size:3+(Math.random()<.5?2:0)});}} /* 射擊後玩家後方煙幕 */
     {const c=pc(),sx=mz[0]+Math.cos(aim)*10,sy=mz[1]+Math.sin(aim)*10;PWP.push({k:'sring',x:sx,y:sy,sx,sy,tx:c.x-Math.cos(aim)*34,ty:c.y-6-Math.sin(aim)*34,vx:0,vy:0,a:aim,life:26,max:26});} /* 槍口前的環：放大、往玩家後方移動（越接近越慢）、淡出 */}
   else if(p.weapon==='book'){PWP.push({k:'heal',x:mz[0],y:mz[1],px:mz[0],py:mz[1],vx:Math.cos(aim)*S.spd,vy:Math.sin(aim)*S.spd,life:S.life,t:0,tr:[]});}} /* 治癒球：射出不發聲 */
-function wpnStaffLaser(p,mz,aim){const L=WPN_ST.staff.laserL,a=[mz[0],mz[1]],e=[mz[0]+Math.cos(aim)*L,mz[1]+Math.sin(aim)*L];
+function wpnStaffLaser(p,mz,aim,dm){const L=WPN_ST.staff.laserL,a=[mz[0],mz[1]],e=[mz[0]+Math.cos(aim)*L,mz[1]+Math.sin(aim)*L];
   let e2=e;if(e[1]>GROUND){const k=(GROUND-a[1])/(e[1]-a[1]);if(k>0&&k<1)e2=[a[0]+(e[0]-a[0])*k,GROUND];} /* 打到地板就停 */
-  const q={vx:Math.cos(aim),vy:Math.sin(aim),st:1};wpnHit(q,a,e2,8,WPN_ST.staff.laser,true);
+  const q={vx:Math.cos(aim),vy:Math.sin(aim),st:1};wpnHit(q,a,e2,8,dm||WPN_ST.staff.laser,true);
   PWP.push({k:'slaser',x:a[0],y:a[1],ex:e2[0],ey:e2[1],life:16,max:16});SFX.laser?SFX.laser():SFX.qi&&SFX.qi();addShake(1.2);part(e2[0],e2[1],8,'#d8b8ff',2.4,16,1);}
 // ---- 法杖方式三：分身（左鍵在準星處召喚，最多 3 個：雷射／魔彈／拿另一把武器；每個存在 30 秒）----
 let CLONES=[],CLONE_POOL=[],CLONE_TGT=null;const CLONE_LIFE=1800;const cRig=makeRig(180,90,130,PC,'#050508');
@@ -4572,7 +4572,7 @@ function wpnStep(){cloneStep();const tgt=PWP.length?wpnNearCursor():null,KT=PWP.
     if(q.k==='ccirc'||q.k==='ctgt')continue;
     if(q.k==='sbig'){if(P&&P.muzzleW&&P.weapon==='staff'){const a=Math.atan2(Math.sin(P.gunLA||0),Math.cos(P.gunLA||0)*P.face);q.a=a;q.x=P.muzzleW[0]+Math.cos(a)*12;q.y=P.muzzleW[1]+Math.sin(a)*12;}continue;} /* 方式二的大法陣：保持在法杖前方 */
     if(q.k==='islash'){q.x+=Math.cos(q.a)*q.v;q.y+=Math.sin(q.a)*q.v;q.v*=.84;q.tr.push([q.x,q.y]);if(q.tr.length>7)q.tr.shift();continue;}
-    if(q.k==='scirc'){const c=pc(),m=wpnMouse();q.x=c.x+q.ox;q.y=Math.min(c.y+q.oy,GROUND-10);q.a=Math.atan2(m.y-q.y,m.x-q.x);if(q.fired<q.n&&q.t>=8){wpnStaffLaser(P,[q.x,q.y],q.a);q.fired++;}continue;}
+    if(q.k==='scirc'){const c=pc(),m=wpnMouse();q.x=c.x+q.ox;q.y=Math.min(c.y+q.oy,GROUND-10);q.a=Math.atan2(m.y-q.y,m.x-q.x);if(q.fired<q.n&&q.t>=8){wpnStaffLaser(P,[q.x,q.y],q.a,WPN_ST.staff.beam);q.fired++;}continue;}
     if(q.k==='swave'){const S=WPN_ST.staff,ca=Math.cos(q.a),sa=Math.sin(q.a); /* 方式二：從法陣前方射出的長方形光，像劍氣一樣越接近最遠距離越慢，停住後淡出；穿透，每個目標打一次 */
       if(q.stop!=null){q.stop--;q.life=Math.max(0,q.stop);continue;}
       const v=S.waveSpd*Math.min(1,Math.max(.1,(S.laserL-q.d)/140));q.x+=ca*v;q.y+=sa*v;q.d+=v;if(q.d>=S.laserL-1)q.stop=12;
