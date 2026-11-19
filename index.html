@@ -3194,7 +3194,10 @@ function kvArFlamesTop(){const b=boss;if(!b||b.kind!=='katavina'||!b.ar||state==
         const ph=i*2.37+row*1.9,L=(row?92:112)*(.62+.38*Math.sin(ft*.085+ph))*(.85+.15*Math.sin(ft*.21+ph*1.7)),w=(row?50:60)*(.85+.15*Math.sin(ft*.13+ph)),sw=Math.sin(ft*.07+ph*.8)*L*.22+Math.sin(ft*.19+ph)*L*.08,ux=Math.cos(th),uy=Math.sin(th);
         tongue(p,ux,uy,w*1.35,L*1.12,sw*1.1,col,.17); /* 外層：較大、很淡＝柔和邊緣 */
         tongue(p,ux,uy,w,L,sw,col,.5);}}}
+  {if(!paused&&Math.random()<.035)KV_ARG.push({th:rnd(0,TAU),t:0,T:Math.round(rnd(80,120))}); /* 隨機處：往圈外擴散的光暈（半徑 150） */
+    gg.save();gg.setTransform(VZ,0,0,VZ,-VX0*VZ,-VY0*VZ);for(const q of KV_ARG){if(!paused)q.t++;const u=q.t/q.T,e=1-Math.pow(1-u,2),p=kvArPt(a,q.th,10+110*e),R=Math.round(40+110*e),al=Math.sin(Math.PI*Math.min(1,u))*.8;if(p[0]<VX0-200||p[0]>VX0+VW_+200||p[1]<VY0-200||p[1]>VY0+VH_+200)continue;gg.globalAlpha=al;gg.drawImage(soft(R,'rgba(225,200,255,1)'),p[0]-R,p[1]-R);gg.globalAlpha=al*.6;const r2=Math.round(R*.4);gg.drawImage(soft(r2,'rgba(255,255,255,1)'),p[0]-r2,p[1]-r2);}gg.restore();KV_ARG=KV_ARG.filter(q=>q.t<q.T);}
   g.restore();}
+let KV_ARG=[];
 function kvArenaDraw(){const b=boss;if(!b||b.kind!=='katavina'||!b.ar)return;const a=b.ar,N=200,t=a.t||0,L=VX0-60,T=VY0-60,Rr=VX0+VW_+60,B=VY0+VH_+60;
   {const sc=p=>[(p[0]-VX0)*VZ,(p[1]-VY0)*VZ],scx=(a.cx-VX0)*VZ,scy=(a.cy-VY0)*VZ; /* 往外延伸、燒起來的扭曲波浪（只扭邊界外側一圈） */
     kvSnapBuf();g.save();g.setTransform(1,0,0,1,0,0);const NB=7;
