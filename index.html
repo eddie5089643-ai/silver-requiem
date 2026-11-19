@@ -1004,7 +1004,7 @@ function updPlayer(){
   // 自然回血：3 秒沒受傷後，每秒回 3 點
   if(p.hp<(p.hpPrev??p.hp))p.regT=180;if(p.regT>0)p.regT--;else if(p.hp<p.mhp&&!p.dead){p.regAcc=(p.regAcc||0)+3/60;if(p.regAcc>=1){const n=Math.floor(p.regAcc);p.hp=Math.min(p.mhp,p.hp+n);p.regAcc-=n;if(frameN%20===0)part(c.x+rnd(-5,5),c.y+rnd(-8,8),1,'#8cffb0',.6,24);}}
   p.hpPrev=p.hp;
-  if(p.rageOn){p.rage-=100/600;if(frameN%3===0)parts.push({x:c.x+rnd(-8,8),y:c.y+rnd(-14,10),vx:rnd(-.3,.3),vy:-rnd(.4,1.2),life:26,max:26,col:Math.random()<.5?'#ffffff':'#bcd4ff',size:1});if(p.rage<=0){p.rage=0;p.rageOn=false;}}
+  if(p.rageOn){p.rage-=100/600*(p.weapon==='kunai'?2:1); /* 飛刀怒氣消耗兩倍 */if(frameN%3===0)parts.push({x:c.x+rnd(-8,8),y:c.y+rnd(-14,10),vx:rnd(-.3,.3),vy:-rnd(.4,1.2),life:26,max:26,col:Math.random()<.5?'#ffffff':'#bcd4ff',size:1});if(p.rage<=0){p.rage=0;p.rageOn=false;}}
   if(st&&frameN%8===0)part(c.x,p.y-4,1,'#ffe9a8',.8,20);
   const bob=p.onG&&Math.abs(p.vx)>.5?-Math.abs(Math.sin(p.runPh))*1.6:0;
   stepChain(p.hair,c.x-p.face*2.5*PS,p.y+p.h-43*PS+bob*PS,3.3*PS,.22,.86,Math.sin(frameN/30)*.04-p.vx*.02);
