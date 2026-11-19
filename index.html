@@ -3841,7 +3841,14 @@ function drawHUD(){
   cx.save();cx.translate(W*S,0);cx.scale(1.5,1.5);cx.translate(-W*S,0); /* 右上狀態欄放大 1.5 倍 */
   // 右上：玩家生命（愛心）
   const hearts=10,per=p.mhp/hearts;
-  for(let i=0;i<hearts;i++){const x=W-14-(hearts-1-i)*11,y=8,v=clamp((p.hp-i*per)/per,0,1);
+  const starHud=!!(boss&&boss.kind==='katavina'&&boss.starFx&&!boss.dead&&state==='fight'); /* 星空期間：看不到剩餘血量 */
+  if(starHud){const hs=heartSpr('#ffffff','#ffffff'),ol=heartSpr('#c46aff','#c46aff'),ST=kvStars(),w=Math.ceil(9*S),h=Math.ceil(8*S);if(!heartSpr.t||heartSpr.t.width!==w||heartSpr.t.height!==h){heartSpr.t=mk(w,h);}const tc=heartSpr.t,tx=tc.getContext('2d');
+    for(let i=0;i<hearts;i++){const x=W-14-(hearts-1-i)*11+rnd(-.9,.9),y=8+rnd(-.9,.9); /* 每顆愛心隨機發抖 */
+      cx.save();cx.shadowColor='#c46aff';cx.shadowBlur=7*S;for(const [dx,dy] of [[-.5,0],[.5,0],[0,-.5],[0,.5]])spr2(ol,x+dx,y+dy);cx.restore(); /* 紫色外框（發光） */
+      tx.globalCompositeOperation='source-over';tx.clearRect(0,0,w,h);tx.imageSmoothingEnabled=false;tx.drawImage(hs,0,0,w,h);
+      {tx.globalCompositeOperation='source-in';const gr=tx.createLinearGradient(0,0,w,h);gr.addColorStop(0,'#8e5ee0');gr.addColorStop(.5,'#5a2ea8');gr.addColorStop(1,'#2a1260');tx.fillStyle=gr;tx.fillRect(0,0,w,h);tx.globalCompositeOperation='source-atop';for(let k=0;k<7;k++){const sx=((k*53+i*31)+frameN*(.25+k*.04))%(w+4)-2,sy=((k*29+i*17)%h),br=(Math.sin(frameN*.2+k*2+i)+1)/2;tx.fillStyle=br>.6?'#ffffff':'#d6c4ff';const ps=Math.max(1,Math.round(S*(k%3===0?.7:.45)));tx.fillRect(Math.round(sx),Math.round(sy),ps,ps);} /* 星星往一側飄 */if(false){const ox=-((frameN*.35+i*37)%ST.width),oy=-((frameN*.18+i*23)%ST.height);tx.drawImage(ST,ox,oy);tx.drawImage(ST,ox+ST.width,oy);tx.drawImage(ST,ox,oy+ST.height);tx.drawImage(ST,ox+ST.width,oy+ST.height);}} /* 內部：移動的星空 */
+      cx.drawImage(tc,Math.round(x*S),Math.round(y*S));}}
+  else for(let i=0;i<hearts;i++){const x=W-14-(hearts-1-i)*11,y=8,v=clamp((p.hp-i*per)/per,0,1);
     spr2(heartSpr('#2a2a32','#1c1c22'),x,y);if(v>0){cx.save();cx.beginPath();cx.rect(x*S,y*S,9*S*v,8*S);cx.clip();spr2(heartSpr(p.hp/p.mhp<.3?'#ff4060':'#f2f2f6',p.hp/p.mhp<.3?'#a01428':'#b4b4c4'),x,y);cx.restore();}}
   // 飛行、衝刺、振刀、藥水
   const bx0=W-120;if(!MP.on&&!(isTR()&&!DUM_RAGE)){R(bx0+12,21,100,5, /* 訓練場：怒氣開關關掉時不顯示怒氣條 */'rgba(0,0,0,.6)');{const rc=p.rageOn?(frameN%10<5?'#ffffff':'#bcd4ff'):'#9fb8ff';cx.shadowColor=rc;cx.shadowBlur=(p.rageOn?10:4)*S;R(bx0+12,21,100*p.rage/100,5,rc);cx.shadowBlur=0;}R(bx0+12,21,100,1,'rgba(255,255,255,.25)');} /* 怒氣條圖示已移除 */
@@ -3861,11 +3868,13 @@ function drawHUD(){
   if(b&&!b.dormant&&!b.kvWait){const bw=360,x0=W/2-bw/2,y0=H-18;
     cx.save();cx.translate(W/2*S,(H-6)*S);cx.scale(.85,.85);cx.translate(-W/2*S,-(H-6)*S); /* Boss 血條縮小 15%（以底部中央為基準） */
     R(x0-3,y0-3,bw+6,12,'#08080c');R(x0-2,y0-2,bw+4,1,'#8a8a9a');R(x0-2,y0+8,bw+4,1,'#3a3a46');
-    R(x0,y0,bw,7,'#1a0a0e');R(x0,y0,bw*b.ghostHp/b.mhp,7,'#f0e0e0');
-    if(b.kind==='mirror')drawBossFireBar(b,x0,y0,bw*b.hp/b.mhp);
+    const sb=b.kind==='katavina'&&b.starFx&&!b.dead; /* 星空期間：Boss 血條變成紫色外框＋移動的星空，看不到剩餘血量 */
+    if(sb){const ST=kvStars();cx.save();cx.shadowColor='#c46aff';cx.shadowBlur=10*S;R(x0-2,y0-2,bw+4,11,'#c46aff');cx.restore(); /* 紫色外框（發光） */R(x0-1,y0-1,bw+2,9,'#08040f');R(x0,y0,bw,7,'#120826');{cx.save();cx.beginPath();cx.rect(Math.round(x0*S),Math.round(y0*S),Math.round(bw*S),Math.round(7*S));cx.clip();const gx=x0*S-((frameN*1.2)%(bw*S)),gr=cx.createLinearGradient(gx,0,gx+bw*S*2,0);for(let k=0;k<=8;k++)gr.addColorStop(k/8,k%2?'#3a1a72':'#140a2c');cx.fillStyle=gr;cx.fillRect(x0*S,y0*S,bw*S,7*S);for(let k=0;k<70;k++){const sx=x0*S+((k*137.5+frameN*(.4+(k%5)*.15))%(bw*S)),sy=y0*S+((k*53)%Math.floor(7*S)),br=(Math.sin(frameN*.15+k)+1)/2,ps=Math.max(1,Math.round(S*(k%4===0?.8:.45)));cx.fillStyle=br>.55?'#ffffff':'#cbb6ff';cx.fillRect(Math.round(sx),Math.round(sy),ps,ps);}cx.restore();} /* 星雲＋移動的星星 */if(false){cx.save();cx.beginPath();cx.rect(Math.round(x0*S),Math.round(y0*S),Math.round(bw*S),Math.round(7*S));cx.clip();cx.imageSmoothingEnabled=false;const ox=x0*S-((frameN*.6)%ST.width),oy=y0*S-((frameN*.12)%ST.height);for(let k=-1;k<=Math.ceil(bw*S/ST.width)+1;k++)for(const dy of [0,ST.height])cx.drawImage(ST,ox+k*ST.width,oy+dy-ST.height*0);cx.globalCompositeOperation='lighter';cx.globalAlpha=.6;for(let k=-1;k<=Math.ceil(bw*S/ST.width)+1;k++)cx.drawImage(ST,ox*1.3+k*ST.width,oy);cx.restore();}cx.shadowColor='#c46aff';cx.shadowBlur=8*S;R(x0-2,y0-2,bw+4,1,'#e0c0ff');R(x0-2,y0+8,bw+4,1,'#c46aff');cx.shadowBlur=0;}
+    else{R(x0,y0,bw,7,'#1a0a0e');R(x0,y0,bw*b.ghostHp/b.mhp,7,'#f0e0e0');}
+    if(sb){}else if(b.kind==='mirror')drawBossFireBar(b,x0,y0,bw*b.hp/b.mhp);
     else{const col=b.inv>0?'#555':b.col;cx.shadowColor=col;cx.shadowBlur=8*S;R(x0,y0,bw*b.hp/b.mhp,7,col);cx.shadowBlur=0;
     R(x0,y0,bw*b.hp/b.mhp,1,'rgba(255,255,255,.4)');}
-    for(const t of b.phaseAt){R(x0+bw*t-1,y0-3,2,13,'#d8d8e0');}
+    if(!sb)for(const t of b.phaseAt){R(x0+bw*t-1,y0-3,2,13,'#d8d8e0');}
     if(b.kind==='katavina'&&b.shield>0&&(b.phase|0)===0){R(x0,y0-7,bw,3,'#0c1a22');cx.shadowColor='#c080ff';cx.shadowBlur=6*S;R(x0,y0-7,bw*b.shield/b.mshield,3,'#dcb8ff');cx.shadowBlur=0;} /* 護盾條 */
     // 圖示：鏡中銀影頭像（一二階段／三階段／四階段），底下有隨階段變強的閃爍光暈；四階段眼睛冒白火
     if(b.kind==='mirror'&&BICON[0].complete){drawBossIcon(b,x0-22,y0+2);}
@@ -4279,7 +4288,7 @@ function mpHUD(){if(!MP.on||state!=='fight'||!P)return;
   else if(P.dead){T('復活倒數 '+Math.ceil((P.respawnT||0)/60),W/2,H/2-20,14,'#ffffff','center',8);if((P.deadT||0)>=180)T(MP.spec?'觀戰中 · 左鍵切換':'左鍵：觀戰其他玩家',W/2,H/2+2,9,'#cfd4e8','center',8);}
   const LST=MP.players;let y=H-12-(LST.length-1)*9;if(MP.codeShow&&MP.code)T(tr('房號 ')+MP.code,W-10,y-9,7,'#ffffff','right'); /* Esc：右下角顯示房號 */for(const pl of LST){ /* 多人狀態欄：右下角，P1（房主） P2 P3… */const isMe=(MP.host&&pl.id==='h')||pl.id===MP.myId;const s=isMe?null:MP.view[pl.id];
     const hp=isMe?P.hp/P.mhp:(s?s.hp/(s.mh||200):0),dead=isMe?P.dead:(s&&s.d);
-    const mx=W-62;T('P'+((pl.slot|0)+1),mx-3,y+3.3,6,MPCSS[pl.slot],'right'); /* 編號用玩家顏色、跟方塊對齊 */R(mx,y,6,6,MPCSS[pl.slot]);R(mx+10,y+2,40,2,'rgba(255,255,255,.2)');R(mx+10,y+2,40*Math.max(0,hp),2,dead?'#555':'#ffffff');
+    const mx=W-62;T('P'+((pl.slot|0)+1),mx-3,y+3.3,6,MPCSS[pl.slot],'right'); /* 編號用玩家顏色、跟方塊對齊 */R(mx,y,6,6,MPCSS[pl.slot]);if(!(boss&&boss.kind==='katavina'&&boss.starFx&&!boss.dead)){R(mx+10,y+2,40,2,'rgba(255,255,255,.2)');R(mx+10,y+2,40*Math.max(0,hp),2,dead?'#555':'#ffffff');} /* 星空期間：右下角隱藏血條 */
     if(MP.tgt===pl.id){const ix=(mx+54)*S,iy=(y+3)*S;cx.save();cx.translate(ix,iy);cx.scale(.6,.6);cx.translate(-ix,-iy);icon('skull',mx+54,y+3,'#ff3c5a');cx.restore();} /* Boss 鎖定：小骷髏頭（縮小） */T(String(Math.round(MP.total[pl.id]||0)),mx-20,y+3.3,6,'#cfd4e6','right'); /* 傷害數字靠右對齊 */y+=9;}}
 // 包裝：房主在跑 Boss AI 時，把音效、殘影、裂空火花記錄下來轉送
 MP.sfx0={};for(const k in SFX){const f=SFX[k];MP.sfx0[k]=f;SFX[k]=function(...a){if(MP.on&&MP.host&&MP.cap)MP.q.sfx.push([k,a]);return f.apply(SFX,a);};}
