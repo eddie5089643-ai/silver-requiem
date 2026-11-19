@@ -3046,7 +3046,7 @@ function render(){
     if(VZ!==1){g.scale(VZ,VZ);gg.scale(VZ,VZ);}KV_CAM=[Math.round(-VX0+sx-camK),Math.round(-VY0+sy)];g.translate(Math.round(-VX0+sx-camK),Math.round(-VY0+sy));gg.translate(Math.round(-VX0+sx-camK),Math.round(-VY0+sy));
     drawWorld();kvPullPost();kvCbWarpPost();snWarpPost();kvPilPost();kvRockPost();drawScars();drawLastRing();drawMirror();drawAoes();drawLasers();drawGhosts();kvDarkOverlay();kvPilDarkDraw();kvCirclesDraw();kvChainDraw();if(typeof wpnHolePre==='function')wpnHolePre();drawBoss();kvEyeDots();kvPrEnhDraw();kvCpDraw();kvCpWreckDraw(false);kvCpWreckDraw(true);kvMobsDraw();kvMobsDrawTop();snHsDraw();kvP3FxDraw();kvRockDraw();kvCbFxDraw();kvHandCirclesDraw();kvPullDraw();kvPillarsDraw();wpnDraw();kvBeamDraw();if(!(boss&&boss.tl&&boss.tl.mode==='alone')&&!kvStarOn())kvPrinDraw();kvBHDraw();mpDrawRemotes();if(KV_DARK>.01)g.filter=`brightness(${(1-KV_DARK).toFixed(3)})`;kvChairDraw();drawPlayer();g.filter='none';snSmokeDraw();kvArenaDraw();kvStarCover();if(kvStarOn()&&!(boss.tl&&boss.tl.mode==='alone'))kvPrinDraw(); /* 星空期間：皇女法陣畫在星空上面 */kvCosmosDraw();drawTrail();drawBullets();drawParts();drawFX();drawLock();
     g.restore();gg.restore();
-    kvBHPost();kvRingPost();kvShieldPost();kvStarEdgePost();kvSuckPost();kvBHTop();kvContrast();kvPrSpot();kvPrTop();kvSwordsTop();kvLightFx(); // 黑洞周圍扭曲＋扭曲環（畫在整個場景上）
+    kvBHPost();kvRingPost();kvShieldPost();kvStarEdgePost();kvSuckPost();kvBHTop();kvContrast();kvPrSpot();kvArFlamesTop();kvPrTop();kvSwordsTop();kvLightFx(); // 黑洞周圍扭曲＋扭曲環（畫在整個場景上）
     // 暗角（越靠近 Boss 越壓迫；困難三階有心跳脈動）
     if(boss&&P&&!isTR()){const c=pc(),d=dist(c.x,c.y,boss.x,boss.y-50),hb=boss.hard&&boss.phase>=3&&!boss.dead?Math.pow(Math.max(0,Math.sin(frameN/20)),8)*.25+.15:0,k=clamp(1-d/500,0,1)*.35+boss.phase*.08+hb;
       const vg=g.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,H*.85);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,`rgba(0,0,0,${.35+k})`);g.fillStyle=vg;g.fillRect(0,0,W,H);}
@@ -3166,7 +3166,7 @@ function kvGenPlats(){const out=[],w=240,n=5,gap=WW/n; /* 整齊排列：每排�
 // ===== 皇女為主（本體退場 1:18～1:50）：正方形火焰圈從地圖外縮小，玩家在圈外持續灼燒 -1；畫面變暗、皇女頭上聚光燈、玩家周圍微亮 =====
 const KV_AR_MIN=620,KV_AR_MAX=1700;
 /* 邊界形狀：圓角方形（不是完全正方形），邊緣有往內扭曲、會流動的波浪 */
-const KV_AR_N=4;function kvArR(a,th){const t=a.t||0;return 1-.045*(.5+.5*Math.sin(th*6+t*.045))-.03*(.5+.5*Math.sin(th*11-t*.07+1.3))-.02*(.5+.5*Math.sin(th*3+t*.025+.7));}
+const KV_AR_N=4;function kvArR(a,th){const t=a.t||0;return 1-.045*(.5+.5*Math.sin(th*6+t*.022))-.03*(.5+.5*Math.sin(th*11-t*.035+1.3))-.02*(.5+.5*Math.sin(th*3+t*.012+.7));} /* 波浪流動放慢一半 */
 function kvArPt(a,th,ext){const c=Math.cos(th),s_=Math.sin(th),den=Math.pow(Math.pow(Math.abs(c),KV_AR_N)+Math.pow(Math.abs(s_),KV_AR_N),1/KV_AR_N),r=a.h*kvArR(a,th)/den+(ext||0);return [a.cx+c*r,a.cy+s_*r];}
 function kvArOut(a,x,y){const dx=x-a.cx,dy=y-a.cy,d=Math.pow(Math.pow(Math.abs(dx),KV_AR_N)+Math.pow(Math.abs(dy),KV_AR_N),1/KV_AR_N)/a.h;return d>kvArR(a,Math.atan2(dy,dx));}
 function kvArPath(c,a,ext,N,tf,cont){if(!cont)c.beginPath();for(let i=0;i<=N;i++){const th=i/N*TAU,e=typeof ext==='function'?ext(th):ext,p=kvArPt(a,th,e),q=tf?tf(p):p;i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]);}c.closePath();}
@@ -3182,6 +3182,18 @@ function kvArenaStep(b){const on=b.tl&&b.tl.bodyOff&&!b.dead;if(!b.ar){if(!on||b
     const nx=Math.cos(th),ny=Math.sin(th); /* 火焰：沿邊界散開、往外飄、往上竄 */
     a.parts.push({x,y,vx:nx*rnd(.3,1.1)+rnd(-.2,.2),vy:ny*rnd(.3,1)-rnd(.4,1.3),life:rnd(22,40)|0,max:40,s:rnd(2,6)|0});}
   for(const q of a.parts){q.x+=q.vx;q.y+=q.vy;q.life--;}a.parts=a.parts.filter(q=>q.life>0);if(a.parts.length>500)a.parts.splice(0,a.parts.length-500);}
+/* 圈外火焰剪影：畫在變暗層上面（不被壓暗） */
+function kvArFlamesTop(){const b=boss;if(!b||b.kind!=='katavina'||!b.ar||state==='title')return;const a=b.ar;
+  {const per=Math.max(1,a.h)*8,n=Math.max(24,Math.round(per/46)),ft=frameN; /* 圈外火焰：自己畫的火焰剪影（填滿），白色／紫白色兩組交錯，不透明度 50%，會晃動、伸縮 */
+    g.save();g.setTransform(VZ,0,0,VZ,-VX0*VZ,-VY0*VZ);g.globalAlpha=.5;
+    for(let row=0;row<2;row++){g.fillStyle=row?'#d8c2ff':'#ffffff';g.beginPath();
+      for(let i=0;i<n;i++){const th=(i+row*.5)/n*TAU,p=kvArPt(a,th,2);if(p[0]<VX0-160||p[0]>VX0+VW_+160||p[1]<VY0-160||p[1]>VY0+VH_+160)continue;
+        const ph=i*2.37+row*1.9,L=(row?92:112)*(.62+.38*Math.sin(ft*.085+ph))*(.85+.15*Math.sin(ft*.21+ph*1.7)),w=(row?50:60)*(.85+.15*Math.sin(ft*.13+ph)),sw=Math.sin(ft*.07+ph*.8)*L*.22+Math.sin(ft*.19+ph)*L*.08, /* 長度、寬度、尖端左右擺動 */
+          ux=Math.cos(th),uy=Math.sin(th),vx=-uy,vy=ux,P_=(x,y)=>[p[0]+vx*x+ux*y,p[1]+vy*x+uy*y],b0=P_(-w/2,-4),c1=P_(-w*.55+sw*.25,L*.5),tp=P_(sw,L),c2=P_(w*.55+sw*.25,L*.5),b1=P_(w/2,-4),c3=P_(-w*.18+sw*.6,L*.78),c4=P_(w*.12+sw*.55,L*.72);
+        g.moveTo(b0[0],b0[1]);g.quadraticCurveTo(c1[0],c1[1],c3[0],c3[1]);g.quadraticCurveTo((c3[0]+tp[0])/2,(c3[1]+tp[1])/2,tp[0],tp[1]);g.quadraticCurveTo((c4[0]+tp[0])/2,(c4[1]+tp[1])/2,c4[0],c4[1]);g.quadraticCurveTo(c2[0],c2[1],b1[0],b1[1]);g.closePath();}
+      g.fill();}
+    g.restore();}
+}
 function kvArenaDraw(){const b=boss;if(!b||b.kind!=='katavina'||!b.ar)return;const a=b.ar,N=200,t=a.t||0,L=VX0-60,T=VY0-60,Rr=VX0+VW_+60,B=VY0+VH_+60;
   {const sc=p=>[(p[0]-VX0)*VZ,(p[1]-VY0)*VZ],scx=(a.cx-VX0)*VZ,scy=(a.cy-VY0)*VZ; /* 往外延伸、燒起來的扭曲波浪（只扭邊界外側一圈） */
     kvSnapBuf();g.save();g.setTransform(1,0,0,1,0,0);const NB=7;
@@ -3191,14 +3203,10 @@ function kvArenaDraw(){const b=boss;if(!b||b.kind!=='katavina'||!b.ar)return;con
       g.drawImage(KV_SNAP,scx-scx*k,scy-scy*k,W*k,H*k);g.restore();}
     g.restore();}
   g.save();g.fillStyle='rgba(150,90,220,.12)';g.beginPath();g.rect(L,T,Rr-L,B-T);kvArPath(g,a,0,N,null,true);g.fill('evenodd');g.restore(); /* 圈外淡紫白色 */
-  {const SH=kvArSheets();if(SH){const per=Math.max(1,a.h)*8,n=Math.max(24,Math.round(per/80)),fr=frameN*.13,sc=.95;g.save();g.imageSmoothingEnabled=false; /* 圈外：白色、白紫色火焰兩組交錯（位置錯開半格、明暗輪流） */
-    for(let row=0;row<2;row++)for(let i=0;i<n;i++){const th=(i+row*.5)/n*TAU,p=kvArPt(a,th,row?34:8);if(p[0]<VX0-140||p[0]>VX0+VW_+140||p[1]<VY0-140||p[1]>VY0+VH_+140)continue;
-      const ci=(i+row)%2,fi=Math.floor(fr+i*5+row*6)%12,pul=.5+.5*Math.sin(frameN*.09+i*1.7+row*Math.PI);const al=(row?.75:1)*(.5+.5*pul),sz=200*sc*(row?1.15:1)*(.9+.1*pul),sx=(fi%4)*200,sy=Math.floor(fi/4)*200;for(const [c,m] of [[g,al],[gg,al*.6]]){c.save();c.globalAlpha=m;c.translate(p[0],p[1]);c.rotate(th-Math.PI/2);c.imageSmoothingEnabled=false;c.drawImage(SH[ci],sx,sy,200,200,-sz/2,-sz*.18,sz,sz);c.restore();}}
-    g.restore();}}
   const fl=.85+.15*Math.sin(frameN*.4);
   gg.save();gg.lineJoin='round';for(const [w,al,col] of [[46,.14,'#b080ff'],[22,.22,'#e8d8ff'],[8,.35,'#ffffff']]){gg.globalAlpha=al*fl;gg.strokeStyle=col;gg.lineWidth=w;kvArPath(gg,a,th=>kvArFl(a,th)*.2,N);gg.stroke();}gg.restore(); /* 光效 */
   g.save();g.lineJoin='round';g.lineCap='round';
-  for(const [k,w,al,col] of [[1,9,.22,'#a870ff'],[.8,8,.3,'#bb94ff'],[.6,7,.42,'#d4bcff'],[.4,6,.58,'#e8dcff'],[.2,5,.78,'#f6f0ff'],[0,3,.95,'#ffffff']]){g.globalAlpha=al*fl;g.strokeStyle=col;g.lineWidth=w;kvArPath(g,a,th=>kvArFl(a,th)*k,N);g.stroke();} /* 白／白紫火焰：一層層往外延伸、尖端跳動 */
+  for(const [k,w,al,col] of [[1,9,.22,'#a870ff'],[.8,8,.3,'#bb94ff'],[.6,7,.42,'#d4bcff'],[.4,6,.58,'#e8dcff'],[.2,5,.78,'#f6f0ff'],[0,3,.95,'#ffffff']]){g.globalAlpha=al*fl*.7;g.strokeStyle=col;g.lineWidth=w;kvArPath(g,a,th=>kvArFl(a,th)*k,N);g.stroke();} /* 邊線不透明度 70% */ /* 白／白紫火焰：一層層往外延伸、尖端跳動 */
   g.restore();
   for(const q of a.parts){const k=Math.min(1,q.life/q.max*1.4),sz=Math.max(1,Math.round(q.s*(.4+.6*k)));g.globalAlpha=k*.9;g.fillStyle=k>.6?'#ffffff':k>.35?'#f0e6ff':'#d4bcff';g.fillRect(Math.round(q.x-sz/2),Math.round(q.y-sz),sz,Math.round(sz*1.6));gg.globalAlpha=k*.35;gg.fillStyle='#d0b0ff';gg.fillRect(Math.round(q.x-sz),Math.round(q.y-sz*1.4),sz*2,sz*2.4);}
   g.globalAlpha=1;gg.globalAlpha=1;}
