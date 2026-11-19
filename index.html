@@ -4487,7 +4487,7 @@ function wpnFire(p,st,aim){const S=WPN_ST[p.weapon];let dbl=false;if(p.snDblT>0)
     {const c=pc();for(let i=0;i<18;i++){const b=aim+Math.PI+rnd(-.7,.7),sp=rnd(.4,2.4);parts.push({x:c.x-Math.cos(aim)*8+rnd(-3,3),y:c.y-6+rnd(-4,4),vx:Math.cos(b)*sp,vy:Math.sin(b)*sp-rnd(0,.3),life:rnd(30,60),max:60,col:Math.random()<.5?'#8a8498':Math.random()<.5?'#b8b0c8':'#5a5468',size:3+(Math.random()<.5?2:0)});}} /* 射擊後玩家後方煙幕 */
     {const c=pc(),sx=mz[0]+Math.cos(aim)*10,sy=mz[1]+Math.sin(aim)*10;PWP.push({k:'sring',x:sx,y:sy,sx,sy,tx:c.x-Math.cos(aim)*34,ty:c.y-6-Math.sin(aim)*34,vx:0,vy:0,a:aim,life:26,max:26});} /* 槍口前的環：放大、往玩家後方移動（越接近越慢）、淡出 */}
   else if(p.weapon==='book'){PWP.push({k:'heal',x:mz[0],y:mz[1],px:mz[0],py:mz[1],vx:Math.cos(aim)*S.spd,vy:Math.sin(aim)*S.spd,life:S.life,t:0,tr:[]});}} /* 治癒球：射出不發聲 */
-function wpnStaffLaser(p,mz,aim,dm){const L=WPN_ST.staff.laserL,a=[mz[0],mz[1]],e=[mz[0]+Math.cos(aim)*L,mz[1]+Math.sin(aim)*L];
+function wpnStaffLaser(p,mz,aim,dm,len){const L=len||WPN_ST.staff.laserL,a=[mz[0],mz[1]],e=[mz[0]+Math.cos(aim)*L,mz[1]+Math.sin(aim)*L];
   let e2=e;if(e[1]>GROUND){const k=(GROUND-a[1])/(e[1]-a[1]);if(k>0&&k<1)e2=[a[0]+(e[0]-a[0])*k,GROUND];} /* 打到地板就停 */
   const q={vx:Math.cos(aim),vy:Math.sin(aim),st:1};wpnHit(q,a,e2,8,dm||WPN_ST.staff.laser,true);
   PWP.push({k:'slaser',x:a[0],y:a[1],ex:e2[0],ey:e2[1],life:16,max:16});SFX.laser?SFX.laser():SFX.qi&&SFX.qi();addShake(1.2);part(e2[0],e2[1],8,'#d8b8ff',2.4,16,1);}
@@ -4572,7 +4572,7 @@ function wpnStep(){cloneStep();const tgt=PWP.length?wpnNearCursor():null,KT=PWP.
     if(q.k==='ccirc'||q.k==='ctgt')continue;
     if(q.k==='sbig'){if(P&&P.muzzleW&&P.weapon==='staff'){const a=Math.atan2(Math.sin(P.gunLA||0),Math.cos(P.gunLA||0)*P.face);q.a=a;q.x=P.muzzleW[0]+Math.cos(a)*12;q.y=P.muzzleW[1]+Math.sin(a)*12;}continue;} /* 方式二的大法陣：保持在法杖前方 */
     if(q.k==='islash'){q.x+=Math.cos(q.a)*q.v;q.y+=Math.sin(q.a)*q.v;q.v*=.84;q.tr.push([q.x,q.y]);if(q.tr.length>7)q.tr.shift();continue;}
-    if(q.k==='scirc'){const c=pc(),m=wpnMouse();q.x=c.x+q.ox;q.y=Math.min(c.y+q.oy,GROUND-10);q.a=Math.atan2(m.y-q.y,m.x-q.x);if(q.fired<q.n&&q.t>=8){wpnStaffLaser(P,[q.x,q.y],q.a,WPN_ST.staff.beam);q.fired++;}continue;}
+    if(q.k==='scirc'){const c=pc(),m=wpnMouse();q.x=c.x+q.ox;q.y=Math.min(c.y+q.oy,GROUND-10);q.a=Math.atan2(m.y-q.y,m.x-q.x);if(q.fired<q.n&&q.t>=8){wpnStaffLaser(P,[q.x,q.y],q.a,WPN_ST.staff.beam,WPN_ST.staff.laserL*.9) /* 方式一光束距離 -10% */;q.fired++;}continue;}
     if(q.k==='swave'){const S=WPN_ST.staff,ca=Math.cos(q.a),sa=Math.sin(q.a); /* 方式二：從法陣前方射出的長方形光，像劍氣一樣越接近最遠距離越慢，停住後淡出；穿透，每個目標打一次 */
       if(q.stop!=null){q.stop--;q.life=Math.max(0,q.stop);continue;}
       const v=S.waveSpd*Math.min(1,Math.max(.1,(S.laserL-q.d)/140));q.x+=ca*v;q.y+=sa*v;q.d+=v;if(q.d>=S.laserL-1)q.stop=12;
