@@ -235,8 +235,9 @@ function audioGraph(){const o={master,comp,rev,rg:AUD.rg,an:AUD.an};
 function audioWatch(){if(!AC)return;if(AC.state!=='running'&&AC.state!=='closed'){try{AC.resume();}catch(e){}}
   if(AUD.an){const d=AUD.buf||(AUD.buf=new Float32Array(512));AUD.an.getFloatTimeDomainData(d);for(let i=0;i<d.length;i+=4)if(!isFinite(d[i])){audioGraph();break;}}}
 function audioCap(){if(AUD.cap)return;AUD.cap=1;const hist=[],wrap=O=>{for(const k in O){const f=O[k];if(typeof f!=='function')continue;
-  O[k]=function(){if(AC){const t=AC.currentTime;while(hist.length&&hist[0]<t-.2)hist.shift();if(hist.length>=28)return;hist.push(t);}return f.apply(this,arguments);};}};
+  O[k]=function(){if(typeof MP!=='undefined'&&MP.mute)return;if(AC){const t=AC.currentTime;while(hist.length&&hist[0]<t-.2)hist.shift();if(hist.length>=28)return;hist.push(t);}return f.apply(this,arguments);};}};
   wrap(SFX);if(typeof MP!=='undefined'&&MP.sfx0)wrap(MP.sfx0);} /* 0.2 秒內最多 28 個音效（含多人轉送的音效） */
+addEventListener('load',()=>{try{const _w=wpnDraw;wpnDraw=function(){try{return _w.apply(this,arguments);}finally{remA(false);}};const _t=drawTrail;drawTrail=function(){try{return _t.apply(this,arguments);}finally{remA(false);}};const _h=mpHostMsg;mpHostMsg=function(c,d){const mu=d&&['mhit','cphit','hit','crit','ctrHit'].includes(d.t);if(mu)MP.mute=1;try{return _h(c,d);}finally{if(mu)MP.mute=0;}};}catch(e){}}); /* 畫完恢復透明度；別人的攻擊打中不播音效 */
 function audioInit(){
   if(AC){if(AC.state!=='running'&&AC.state!=='closed')AC.resume();return;}
   const AX=window.AudioContext||window.webkitAudioContext;try{AC=new AX({sampleRate:48000,latencyHint:'interactive'});}catch(e){try{AC=new AX();}catch(e2){AC=null;return;}}
@@ -2823,7 +2824,7 @@ function drawPlayer(){
 // 村正式刀光：外緣銳利亮線＋漸層殘影＋內側動態線
 function drawTrail(){
   // 月牙刀光：尾端細、往刀頭漸粗，刀頭圓鈍；收招後向外擴散淡出
-  for(const c of crescents){if(c.live&&c.upd!==undefined&&frameN-c.upd>2)c.live=false;if(!c.live){c.life--;c.R+=1.4;}
+  remA(false);for(const c of crescents){remA(c.rem);if(c.live&&c.upd!==undefined&&frameN-c.upd>2)c.live=false;if(!c.live){c.life--;c.R+=1.4;}
     const f=c.live?1:Math.max(0,c.life/c.max),dir=Math.sign(c.span)||1,vis=Math.min(Math.abs(c.span),3.3);if(vis<.15)continue;
     const a0=c.a1-dir*vis,NN=26,Wm=c.R*(c.void?.42:c.heavy?.36:.28)*(c.live||c.void?1:.6+.4*f);
     const outer=[],inner=[],inner2=[];
@@ -2856,7 +2857,7 @@ function drawTrail(){
   for(const q of pshots){gg.lineCap='round';gg.globalAlpha=.3;gg.strokeStyle='#bcd4ff';gg.lineWidth=2.4;gg.beginPath();gg.moveTo(q.x-q.vx*1.8,q.y-q.vy*1.8);gg.lineTo(q.x,q.y);gg.stroke();
     gg.globalAlpha=.9;gg.strokeStyle='#ffffff';gg.lineWidth=1;gg.stroke();g.strokeStyle='#ffffff';g.lineWidth=.8;g.beginPath();g.moveTo(q.x-q.vx*1.2,q.y-q.vy*1.2);g.lineTo(q.x,q.y);g.stroke();}
   // 劍氣
-  for(const q of pqi){const fa=Math.min(1,q.life/12),tint=q.big?'#bcd4ff':'#9fb8ff';
+  remA(false);for(const q of pqi){remA(q.rem);const fa=Math.min(1,q.life/12),tint=q.big?'#bcd4ff':'#9fb8ff';
     const H=q.gh=q.gh||[];if(frameN%2===0){H.push([q.x,q.y]);if(H.length>4)H.shift();} /* 殘影：調淡 */
     if(!q.void)for(let i=0;i<H.length-1;i++)qiCrescent(H[i][0],H[i][1],q.a,q.r,q.tilt||0,q.asym||0,tint,fa*.08,q.big,q.wide);
     if(q.void)voidQi(q,fa);else{qiCrescent(q.x,q.y,q.a,q.r,q.tilt||0,q.asym||0,tint,fa,q.big,q.wide);
@@ -3075,7 +3076,7 @@ const KV_SW_ON=false,KV_SW_SC=.42,KV_SW_WARN=30,KV_SW_GAP=45,KV_SW_V=34,KV_SW_SP
 let KV_SWD_W=null;function kvSwdWhite(){if(KV_SWD_W||!KV_SWD.complete)return KV_SWD_W;const c=mk(KV_SWD.width,KV_SWD.height),x=c.getContext('2d');x.drawImage(KV_SWD,0,0);x.globalCompositeOperation='source-in';x.fillStyle='#ffffff';x.fillRect(0,0,c.width,c.height);return KV_SWD_W=c;}
 function kvSwordStep(b){const s=b.swd;s.t++;
   if(s.n<6&&s.t===1+s.n*KV_SW_GAP){if(!s.order){s.order=[0,1,2,3,4,5,6,7];for(let j=7;j>0;j--){const r=Math.floor(Math.random()*(j+1));[s.order[j],s.order[r]]=[s.order[r],s.order[j]];}}const i=s.order[s.n];s.n++; /* 6 波方向互不重複（8 方向中取 6） */
-    const [ux,uy]=KV_SW_DIRS[i],l=Math.hypot(ux,uy),dx=ux/l,dy=uy/l,px=-dy,py=dx,cx_=VX0+VW_/2,cy_=VY0+VH_/2,
+    const [ux,uy]=KV_SW_DIRS[i],l=Math.hypot(ux,uy),dx=ux/l,dy=uy/l,px=-dy,py=dx,tg_=MP.on&&MP.realP&&P!==MP.realP,cx_=tg_?pc().x:VX0+VW_/2,cy_=tg_?pc().y:VY0+VH_/2, /* 多人：以仇恨目標為中心（不是房主的畫面） */
       ext=VW_/2*Math.abs(dx)+VH_/2*Math.abs(dy),span=VW_/2*Math.abs(px)+VH_/2*Math.abs(py),cP=pc(),kp=(cP.x-cx_)*px+(cP.y-cy_)*py,o=(((kp+span+KV_SW_SP)%KV_SW_SP)+KV_SW_SP)%KV_SW_SP,sw=[]; /* 每一波都有一把對準玩家 */
     for(let k=-span-KV_SW_SP+o;k<=span+KV_SW_SP;k+=KV_SW_SP)sw.push({x:cx_-dx*(ext-50)+px*k,y:cy_-dy*(ext-50)+py*k});
     s.waves.push({dx,dy,ang:Math.atan2(dy,dx)+Math.PI/2,t:0,d:0,max:ext*2+300,sw});SFX.glint&&SFX.glint();}
@@ -4195,7 +4196,7 @@ function mpDrawGraves(){for(const gr of MP.graves||[]){const x=gr.x,y=gr.y;
 function mpDrawRemotes(){if(!MP.on)return;
   mpDrawGraves();
   if(P.dead&&(P.deadT||0)<180){const rg=rigFor(P.palSlot||0);mpDrawCorpse(P,rg,P.pal,P.deadT||0);}
-  for(const v of MP.vshots){g.globalAlpha=Math.min(1,v.life/10)*.8;g.strokeStyle=MPCSS[v.c]||'#fff';g.lineWidth=1;g.beginPath();g.moveTo(v.x,v.y);g.lineTo(v.x-v.vx*.8,v.y-v.vy*.8);g.stroke();}g.globalAlpha=1;
+  for(const v of MP.vshots){g.globalAlpha=Math.min(1,v.life/10)*.8*.7;g.strokeStyle=MPCSS[v.c]||'#fff';g.lineWidth=1;g.beginPath();g.moveTo(v.x,v.y);g.lineTo(v.x-v.vx*.8,v.y-v.vy*.8);g.stroke();}g.globalAlpha=1;
   for(const id in MP.robj){const o=MP.robj[id];if(o.dead){if(o.deadT<180)mpDrawCorpse(o,rigFor(o.slot||0),o.pal,o.deadT);continue;}
     if(o.swLAt!==undefined)o.swLA=o.swLA===undefined?o.swLAt:o.swLA+angDiff(o.swLA,o.swLAt)*.5;
     const rg=rigFor(o.slot||0),out=rg.render(x=>drawPlayerRig(x,o,o.pal));o.dashDir=Math.sign(o.vx)||o.face;drawRigLean(rg,out,o.rx,o.ry,leanOf(o));
@@ -4206,7 +4207,7 @@ function mpDrawRemotes(){if(!MP.on)return;
       const wa=toW(o,o.laNow),hx=o.rx+o.handL[0]*o.face,hy=o.ry+o.handL[1],L_=o.bladeW||40,tx=hx+Math.cos(wa)*L_,ty=hy+Math.sin(wa)*L_;
       const bp=bladeCurve(o,8);gg.lineCap='round';gg.lineJoin='round';gg.strokeStyle='#bcd4ff';gg.globalAlpha=o.sw?.5:.25;gg.lineWidth=o.sw?5:3;strokePts(gg,bp);
       gg.strokeStyle='#ffffff';gg.globalAlpha=o.sw?1:.6;gg.lineWidth=o.sw?2.2:1.6;strokePts(gg,bp);gg.globalAlpha=1;
-      if(o.sw){const sh=pShoulder(o);let cr=o.cres;if(!cr||!cr.live){cr=o.cres={sx:sh[0],sy:sh[1],prev:wa,a1:wa,span:0,R:L_+8,life:10,max:10,heavy:false,live:true,void:false};crescents.push(cr);}
+      if(o.sw){const sh=pShoulder(o);let cr=o.cres;if(!cr||!cr.live){cr=o.cres={sx:sh[0],sy:sh[1],prev:wa,a1:wa,span:0,R:L_+8,life:10,max:10,heavy:false,live:true,void:false,rem:true};crescents.push(cr);}
         if(o.crT){const T=o.crT;cr.a1+=angDiff(cr.a1,T[0])*.5;cr.span+=(T[1]-cr.span)*.5;cr.R=T[2];cr.heavy=!!T[3];cr.void=!!T[4];cr.prev=cr.a1;} /* 用對方真正的月牙刀光（角度、範圍、大小），每幀平滑 */
         else{cr.span+=angDiff(cr.prev,wa);cr.prev=wa;cr.a1=wa;cr.R=Math.max(cr.R*.9,L_+8);}cr.sx=sh[0];cr.sy=sh[1];cr.upd=frameN;
         gg.globalAlpha=.8;gg.drawImage(soft(10,'rgba(220,235,255,.8)'),tx-10,ty-10);gg.globalAlpha=1;}
@@ -4375,6 +4376,8 @@ const SN_NEAR=150; /* 狙擊爆擊：準星／彈道離弱點這麼近就觸發 
 let SN_HS=[]; /* 弱點命中的光效 */
 let GUARD_FX=[];function guardFx(){const rg=P.rig;if(!rg||!rg.out)return;const sn=snapRig(rg.out,'#dbe8ff'),c=mk(sn.width,sn.height);c.getContext('2d').drawImage(sn,0,0);sn.used=false;GUARD_FX.push({c,x:Math.round(P.rx)-rg.ox,y:Math.round(P.ry)-rg.oy,t:0,T:24});if(GUARD_FX.length>6)GUARD_FX.shift();} /* 防禦成功：玩家殘影放大淡出 */
 function guardFxDraw(st){if(!GUARD_FX.length)return;g.save();g.imageSmoothingEnabled=false;for(const q of GUARD_FX){if(st)q.t++;const e=q.t/q.T,sc=1+e*.8,cx_=q.x+q.c.width/2,cy_=q.y+q.c.height/2;g.save();g.globalAlpha=.75*(1-e);g.translate(cx_,cy_);g.scale(sc,sc);g.drawImage(q.c,-q.c.width/2,-q.c.height/2);g.restore();}g.restore();GUARD_FX=GUARD_FX.filter(q=>q.t<q.T);}
+/* 其他人的攻擊：透明度減 30%（包住 g／gg 的 globalAlpha） */
+let REM_A=1;function remA(on){if(!remA.w){remA.w=1;const d=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'globalAlpha');for(const c of [g,gg])Object.defineProperty(c,'globalAlpha',{configurable:true,get(){return d.get.call(this)/REM_A;},set(v){d.set.call(this,Math.min(1,v)*REM_A);}});}const v=on?.7:1;if(REM_A===v)return;REM_A=v;g.globalAlpha=1;gg.globalAlpha=1;}
 let SN_CHK=[];function snChunkDraw(st){if(!SN_CHK.length)return;g.save();for(const q of SN_CHK){if(st){q.t++;if(!q.ld){q.vy=Math.min(q.vy+.07,2.2);q.vx*=.97;q.vy*=.985; /* 下落速度上限：掉得慢 */q.x+=q.vx;q.y+=q.vy;q.rot+=q.vr; /* 較輕的重力＋空氣阻力：往上飛慢下來再落下 */if(q.y+q.hh>=GROUND&&q.vy>0){q.y=GROUND-q.hh;if(q.vy>1.6){q.vy*=-.3;q.vx*=.6;q.vr*=.5;}else{q.ld=1;q.vx=q.vy=0;}}}}
     const al=q.t<90?1:Math.max(0,1-(q.t-90)/30); /* 2 秒淡出消失 */if(al<=0)continue;g.globalAlpha=al;g.save();g.translate(Math.round(q.x),Math.round(q.y));g.rotate(q.rot);g.beginPath();q.pts.forEach((p,k)=>k?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fillStyle=q.col;g.fill();g.strokeStyle=q.hi;g.lineWidth=1;g.stroke();g.restore();}g.restore();SN_CHK=SN_CHK.filter(q=>q.t<120);} /* 狙擊打地板的碎片 */
 let SN_MZS=[];function snSmokeDraw(){const p=P;if(state==='title'){SN_MZS.length=0;SN_CHK.length=0;return;}const st=!paused;
@@ -4625,8 +4628,8 @@ function wpnBookCircle(){const p=P;if(!p||!(p.bookFx>0)||!p.muzzleW||!p.handW||p
     c.beginPath();c.arc(0,0,13,0,TAU);c.stroke();c.beginPath();c.arc(0,0,9,0,TAU);c.stroke();c.rotate(-t*.1);c.beginPath();for(let i=0;i<=6;i++){const b=i*TAU*2/6*1.5;c.lineTo(Math.cos(b)*9,Math.sin(b)*9);}c.stroke();
     for(let i=0;i<8;i++){const b=i*TAU/8;c.fillStyle=c.strokeStyle;c.fillRect(Math.cos(b)*11-.7,Math.sin(b)*11-.7,1.4,1.4);}c.restore();}}
 function wpnDraw(){cloneDraw();wpnBookCircle();wpnHolePost();wpnSnipeHoleDraw();if(STAFF_MODE===0)wpnStaffCircle();wpnHexShield();
-  for(const q of PWT){const e=1-q.life/q.max;wpnSnipeTrail(q.pts,1,Math.min(1.2,e*1.7));if(q.ws)wpnSnipeWisp(q.pts,q.ws,e);}
-  for(const q of PWP){
+  for(const q of PWT){remA(q.rem);const e=1-q.life/q.max;wpnSnipeTrail(q.pts,1,Math.min(1.2,e*1.7));if(q.ws)wpnSnipeWisp(q.pts,q.ws,e);}remA(false);
+  for(const q of PWP){remA(q.rem);
   if(q.k==='staff'){gg.save();for(let i=0;i<q.tr.length;i++){const k=i/q.tr.length;gg.globalAlpha=.5*k;gg.drawImage(soft(6+6*k,'rgba(190,140,255,.9)'),q.tr[i][0]-6-6*k,q.tr[i][1]-6-6*k);}gg.globalAlpha=.9;gg.drawImage(soft(12,'rgba(220,190,255,1)'),q.x-12,q.y-12);gg.restore();g.fillStyle='#ffffff';g.fillRect(Math.round(q.x)-2,Math.round(q.y)-2,4,4);}
   else if(q.k==='scirc'){const k=q.life/q.max,al=Math.min(1,(q.max-q.life+1)/5)*Math.min(1,q.life/6);wpnMagicCircle(q.x,q.y,q.a||0,1,al);}
   else if(q.k==='islash'){const k=q.life/q.max,L=26*(0.7+0.3*k),ang=q.a+Math.PI/2+q.tilt,cx_=Math.cos(ang),sy_=Math.sin(ang);
