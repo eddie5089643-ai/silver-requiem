@@ -1057,7 +1057,7 @@ function spread(x,y,a,n,sp,spd,o){for(let i=0;i<n;i++)shot(x,y,a+(n===1?0:(i/(n-
 function laser(o){const l=Object.assign({x:0,y:0,a:0,len:1600,w:12,tele:50,life:20,t:0,dmg:40,col:curCol,both:true},o);l.tele=Math.round(l.tele/Math.sqrt(D.spd));lasers.push(l);return l;}
 function part(x,y,n,col,spd=2,life=30,size=1,grav=0){for(let i=0;i<n;i++){const a=rnd(0,TAU),s=rnd(.2,1)*spd;parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:life*rnd(.6,1),max:life,col,size,grav});}}
 function ring(x,y,col,r=4,life=18){fx.push({type:'ring',x,y,r,col,life,max:life});}
-function pop(x,y,txt,col='#fff',big=false){pops.push({x,y,txt:String(txt),col,big,life:46});}
+function pop(x,y,txt,col='#fff',big=false){if(typeof txt==='number')txt=Math.round(txt); /* 傷害數字不顯示小數 */pops.push({x,y,txt:String(txt),col,big,life:46});}
 function addShake(v){shake=Math.max(shake,v);if(typeof MP!=='undefined'&&MP&&MP.on&&MP.host&&MP.cap&&MP.q)MP.q.sk=Math.max(MP.q.sk||0,v);}
 let camK=0;function camKick(v){camK=v;}
 let VZ=1,VX0=0,VY0=0,VW_=800,VH_=450;
@@ -1677,7 +1677,7 @@ function kvMpLocal(b){if(!b||b.kind!=='katavina'||!P)return;const me=!MP.host||M
 let KV_PBGs=null;
 function kvMpN(){return (typeof MP!=='undefined'&&MP&&MP.on&&MP.players&&MP.players.length)?Math.max(1,MP.players.length):1;} /* 多人：人數倍率（每多一位玩家血量多一倍） */
 function kvMobSpawnElite(x,y){const H_=(boss&&(boss.phase|0)>=1?600:1000)*kvMpN(); /* 第二階段出現的菁英怪血量 600 */KV_MOBS.push({id:(KV_MID=(KV_MID||0)+1),k:'e',x,y,wx:x,wy:y,vx:0,vy:0,hp:H_,mhp:H_,r:40,t:0,born:40,hf:0,f:Math.random()*12,ang:rnd(0,TAU),bmT:Math.floor(rnd(450,600)),bm:null});}
-function kvShieldDmg(b,d,x,y){if(!(b.shield>0))return;{const c=kvShieldC(b),a=Math.atan2(y-c.y,x-c.x),dd=Math.min(KV_SH_R,Math.hypot(x-c.x,y-c.y));(b.shSpots=b.shSpots||[]).push({x:c.x+Math.cos(a)*Math.max(dd,KV_SH_R*.9),y:c.y+Math.sin(a)*Math.max(dd,KV_SH_R*.9),t:0,big:d>1});if(b.shSpots.length>24)b.shSpots.shift();} /* 命中處記錄 */b.shield=Math.max(0,b.shield-d);b.shHit=d>1?20:8;pop(x+rnd(-6,6),y-6,'-'+d,d>1?'#ecd2ff':'#b48ad8',d>1);part(x,y,d>1?24:4,'#dcb8ff',d>1?3:1.6,d>1?26:12,1);if(d>1){addShake(6);SFX.boom&&SFX.boom();}
+function kvShieldDmg(b,d,x,y){if(!(b.shield>0))return;{const c=kvShieldC(b),a=Math.atan2(y-c.y,x-c.x),dd=Math.min(KV_SH_R,Math.hypot(x-c.x,y-c.y));(b.shSpots=b.shSpots||[]).push({x:c.x+Math.cos(a)*Math.max(dd,KV_SH_R*.9),y:c.y+Math.sin(a)*Math.max(dd,KV_SH_R*.9),t:0,big:d>1});if(b.shSpots.length>24)b.shSpots.shift();} /* 命中處記錄 */b.shield=Math.max(0,b.shield-d);b.shHit=d>1?20:8;pop(x+rnd(-6,6),y-6,'-'+Math.round(d),d>1?'#ecd2ff':'#b48ad8',d>1);part(x,y,d>1?24:4,'#dcb8ff',d>1?3:1.6,d>1?26:12,1);if(d>1){addShake(6);SFX.boom&&SFX.boom();}
   if(b.shield<=0){b.shBreak=60;b.shWave={t:0,T:362};kvShieldShatter(b);addShake(18);const c=kvShieldC(b);for(let i=0;i<120;i++){let a;do{a=rnd(0,TAU);}while(c.y+Math.sin(a)*KV_SH_R>GROUND-2);const rr=KV_SH_R*rnd(.85,1.02),L_=rnd(70,140);parts.push({x:c.x+Math.cos(a)*rr,y:c.y+Math.sin(a)*rr,vx:Math.cos(a)*rnd(.6,3.6),vy:Math.sin(a)*rnd(.6,3.6),life:L_,max:L_,col:Math.random()<.4?'#ffffff':Math.random()<.5?'#c890ff':'#e8ccff',size:Math.random()<.35?2:1,grav:.02});} /* 破碎粒子：更多、維持更久 */addShake(10);flash=.5;flashCol='225,190,255';}} /* 護盾破裂 */
 const KV_SH_R=165;function kvShieldC(b){return {x:b.x,y:GROUND-KV_SH_R/2};} /* 圓心在地板上方 R/2：下面 1/4 被地板平切 */
 /* 菁英怪光束：每 20～30 秒瞄準玩家，預警 1 秒後射出；打中護盾 -150、打中玩家 -20 */
