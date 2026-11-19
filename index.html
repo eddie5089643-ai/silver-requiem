@@ -2253,6 +2253,7 @@ function kvWaitDraw(b){const o=kvOrbPos(),t=frameN,pu=1+.08*Math.sin(t/9);gg.glo
 function kvWaitHud(){const b=boss;if(state!=='fight'||!b||b.kind!=='katavina'||!b.kvWait||!P)return;const o=kvOrbPos(),sx=(o.x-VX0)*VZ,sy=(o.y-VY0)*VZ-58*VZ;
   if(kvWaitNear(P))T((!MP.on||MP.host)?'[F] Start':'等待房主開始',sx,sy,10,'#f0dcff','center',8);}
 function kvPrinDraw(){const b=boss;if(!b||b.kind!=='katavina'||b.kvWait)return;if(b.pa2)kvPaDraw(b.pa2);if(b.pa)kvPaDraw(b.pa);}
+let KV_CIRWH=null;function kvCirWhite(){if(KV_CIRWH||!KV_CIR.complete||!KV_CIR.width)return KV_CIRWH;const c=mk(KV_CIR.width,KV_CIR.height),x=c.getContext('2d');x.drawImage(KV_CIR,0,0);x.globalCompositeOperation='source-atop';x.fillStyle='rgba(255,255,255,.82)';x.fillRect(0,0,c.width,c.height);return KV_CIRWH=c;} /* 白色版擎天火柱法陣 */
 let KV_CIRP=null;function kvCirP(){if(KV_CIRP||!KV_CIRW.complete)return KV_CIRP;const c=mk(KV_CIRW.width,KV_CIRW.height),x=c.getContext('2d');x.drawImage(KV_CIRW,0,0);x.globalCompositeOperation='source-in';x.fillStyle='#c46aff';x.fillRect(0,0,c.width,c.height);return KV_CIRP=c;}
 function kvPaDraw(a){if(!a.os||!KV_CIRW.complete)return;const CIR=kvStarOn()?kvCirP():KV_CIRW; /* 星空期間：法陣改成紫色 */const op=Math.min(1,a.t/KV_PA_OPEN),cl=a.close?1-a.close/16:1,sz=92*(1-Math.pow(1-op,3))*cl;
   if(sz>1)for(const o of a.os){g.save();g.translate(o.x,o.y);g.rotate(o.aim);g.scale(.3,1);g.rotate(a.t*.08);g.globalAlpha=Math.min(1,op*1.4)*cl;g.imageSmoothingEnabled=false;g.drawImage(CIR||KV_CIRW,-sz/2,-sz/2,sz,sz);g.restore();
@@ -2329,9 +2330,26 @@ const KV_SIL={};
 const KV3_LEN=503.0,KV3_LOOP=276.0; /* 第三階段配樂：原曲播到 4:36 淡出、接《渾沌異種_女皇_無歌詞》0:08 淡入；播到 3:57 淡出、接回 0:08 淡入（檔案內 276.0～503.0 循環，淡入淡出已預先做進檔案） */
 function kvClockTick(b){const id=KV_TRACK0+2;if(b.p3clk===undefined)b.p3clk=3;
   if(typeof AC!=='undefined'&&AC&&SMP.cur&&SMP.cur.id===id&&SMP.buf[id])b.p3clk=smpPos();else{b.p3clk+=1/60;if(b.p3clk>=KV3_LEN)b.p3clk=KV3_LOOP+(b.p3clk-KV3_LEN);}return b.p3clk;}
-function kvPrincessPos(b){kvFrame(Math.floor(b.fr)%12,'');return {x:b.x-100*KV_S-KV_MX+KV_PC[0],y:b.y-130*KV_S-KV_M+KV_PC[1]};}
+function kvPrincessPos(b){if(b.pf&&!b.dead&&b.pf.x!=null)return {x:b.pf.x,y:b.pf.y};return kvPrBase(b);} /* 皇女離開本體跟隨時：用跟隨位置（招式、弱點都跟著） */
+function kvPrBase(b){kvFrame(Math.floor(b.fr)%12,'');return {x:b.x-100*KV_S-KV_MX+KV_PC[0],y:b.y-130*KV_S-KV_M+KV_PC[1]};}
+function kvPfThr(b){return b.mhp*((b.phaseAt&&b.phaseAt[1])||.6)*.1;} /* 第三階段血量剩 10% */
+function kvPfStep(b){ /* 第一次星空爆炸後：皇女離開本體，跟在仇恨目標上方／左方／右方（每 10～20 秒換位置）；本體照常放招 */
+  if(b.tl||b.dead){b.pf=null;return;}
+  if(b.pfOn&&!b.pf&&!b.starFx&&b.hp>kvPfThr(b)&&!(b.rbT>=7200)){const q=kvPrBase(b);b.pf={x:q.x,y:q.y,vx:0,vy:0,st:'out',side:Math.random()<.5?'L':'R',sw:Math.round(rnd(600,1200))};SFX.glint&&SFX.glint();}
+  const f=b.pf;if(!f)return;if(f.st==='out'&&(b.starFx||b.hp<=kvPfThr(b)||b.rbT>=7200))f.st='back'; /* 血量剩 10%／要放星空爆炸：先回本體 */
+  let tx,ty,mx;if(f.st==='back'){const q=kvPrBase(b);tx=q.x;ty=q.y;mx=12;if(Math.hypot(tx-f.x,ty-f.y)<14){b.pf=null;return;}}
+  else{const t=pc();if(--f.sw<=0){const o=['U','L','R'].filter(s=>s!==f.side);f.side=o[Math.random()*o.length|0];f.sw=Math.round(rnd(600,1200));}
+    if(f.side==='U'&&t.y<330)f.side=Math.random()<.5?'L':'R'; /* 在天花板：改到左或右 */
+    if(f.side==='L'&&t.x-320<100)f.side='R';else if(f.side==='R'&&t.x+320>WW-100)f.side='L';
+    tx=f.side==='U'?t.x:t.x+(f.side==='L'?-320:320);ty=f.side==='U'?t.y-230:t.y-60;ty=clamp(ty,80,GROUND-60);mx=10;}
+  f.vx=lerp(f.vx,clamp((tx-f.x)*.08,-mx,mx),.12);f.vy=lerp(f.vy,clamp((ty-f.y)*.08,-mx,mx),.12);f.x+=f.vx;f.y+=f.vy;}
+function kvPrOutDraw(){const b=boss;if(!b||b.kind!=='katavina'||!b.pf||b.dead||b.hidden)return;const i=Math.floor(b.fr)%12,pr=kvPrincessPos(b); /* 跟隨的皇女：畫在擎天火柱前面 */
+  if(!paused)kvPrFlameStep(b,pr,frameN%2?2:1); /* 身上冒火（比皇女為主少） */
+  const cw=kvCirWhite();if(cw){const fy=pr.y+17*KV_PS+2,s_=78;g.save();g.translate(pr.x,fy);g.scale(1,.3);g.rotate(frameN*.04);g.globalAlpha=.85;g.imageSmoothingEnabled=false;g.drawImage(cw,-s_/2,-s_/2,s_,s_);g.restore();gg.save();gg.globalAlpha=.35+.1*Math.sin(frameN/12);gg.drawImage(soft(40,'rgba(240,230,255,.8)'),pr.x-40,fy-40);gg.restore();} /* 腳下踩白色的擎天火柱法陣 */
+  kvPrFlameDraw(b,pr);const pc_=kvPrCanvas(i),po=kvSil(pc_,'pr'+i,'#c46aff'),px=Math.round(pr.x-19.5*KV_PS),py=Math.round(pr.y-28*KV_PS);g.save();g.imageSmoothingEnabled=false;
+  for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])g.drawImage(po,px+dx,py+dy);g.drawImage(pc_,px,py);if(b.hurtF>0){g.globalCompositeOperation='lighter';g.globalAlpha=.4;g.drawImage(pc_,px,py);}g.restore();b._pfDraw=true;kvPrEnhDraw();b._pfDraw=false;}
 function kvCancelWarp(b){b.warpFx=null;b.warpHist=[];b.warpS=1;b.warpSH=[];b.haloS=1;b.haloSH=[];b.hidden=false;b.warpTo=null;}
-function kvTimeline(b){const pos=b.p3clk,prev=b.tlPrev===undefined?pos:b.tlPrev;b.tlPrev=pos;if(pos<prev-5)b.tlDone={}; // 配樂循環時重來
+function kvTimeline(b){kvPfStep(b);const pos=b.p3clk,prev=b.tlPrev===undefined?pos:b.tlPrev;b.tlPrev=pos;if(pos<prev-5)b.tlDone={}; // 配樂循環時重來
   const D=b.tlDone=b.tlDone||{},hit=th=>{if(!D[th]&&pos>=th&&pos<th+8){D[th]=1;return true;}return false;},ez=e=>{e=clamp(e,0,1);return e*e*(3-2*e);};
   if(hit(78)){b.p3alone=true;kvCancelWarp(b);if(b.pil)b.pil=b.pil.filter(q=>q.t>0); /* 招放到一半進劇情：還沒開始的波數不再放 */b.tl={mode:'leave',t:0,bodyOff:true,hist:[]};}
   if(hit(110)&&b.tl&&b.tl.bodyOff){b.tl={mode:'return',t:0,bodyOff:true,hist:[]};}
@@ -2341,14 +2359,14 @@ function kvTimeline(b){const pos=b.p3clk,prev=b.tlPrev===undefined?pos:b.tlPrev;
   if(hit(126.5)&&b.tl&&(b.tl.mode==='toCenter'||b.tl.mode==='close')){b.closeUp=true;b.closeT=0;addShake(9);} /* 2:06.5 特寫開始 */
   if(hit(130.5)&&b.tl&&(b.tl.mode==='close'||b.tl.mode==='toCenter')){kvBurst(b);b.rbT=0;} /* 2:10.5 扭曲波（之後每 2 分鐘再放一次，見 rbT） */
   if(hit(132)&&b.closeUp){b.closeUp=false;b.waveDone=false;if(b.tl&&b.tl.mode==='close')b.tl.mode='hold';} /* 2:12 特寫結束（爆炸後 1.5 秒） */
-  if(b.starFx&&b.starFx.t>=900&&!b.barr&&!b.swd&&!b.closeUp&&!b.rbCharge&&b.tl&&(b.tl.mode==='hold'||b.tl.mode==='close'||b.tl.mode==='toCenter')){b.tl=null;b.ai=0;b.t=0;b.pause=0;if(!b.starFx.rb&&!b.p3after)b.p3after=1;} /* 第一次星空爆炸後：下一招固定擎天火柱 */ /* 炸出星空 15 秒後（2:25.5）才離開中間、恢復一般移動 */
+  if(b.starFx&&b.starFx.t>=900&&!b.barr&&!b.swd&&!b.closeUp&&!b.rbCharge&&b.tl&&(b.tl.mode==='hold'||b.tl.mode==='close'||b.tl.mode==='toCenter')){b.tl=null;b.ai=0;b.t=0;b.pause=0;if(!b.starFx.rb&&!b.p3after){b.p3after=1;b.pfOn=true;}} /* 第一次星空爆炸後：下一招固定擎天火柱 */ /* 炸出星空 15 秒後（2:25.5）才離開中間、恢復一般移動 */
   if(b.waveRing){const r=b.waveRing;r.t++;r.r=(1-Math.pow(1-Math.min(1,r.t/r.T),2))*700;if(r.t<60)addShake(7*(1-r.t/60));if(r.t>=r.T){b.waveRing=null;b.waveDone=true;}}
   if(b.barr){const r=b.barr;r.t++;if(r.t%27===1){const k=(r.t-1)/27;const n0=bullets.length,dir=k%2===0?-1:1;ringShot(r.x,r.y,36,1.5,k*.11,{shape:'kvorb',r:10,col:'#c06aff',dmg:24,life:1100,noFloor:true});for(let i=n0;i<bullets.length;i++){const q=bullets[i];q.orb={cx:r.x,cy:r.y,a:Math.atan2(q.vy,q.vx),r:Math.hypot(q.x-r.x,q.y-r.y),vr:1.5,w:dir*.8};} /* 奇數圈逆時針、偶數圈順時針，邊轉邊往外飛 */SFX.boom();}if(r.t>=27*14+1){b.barr=null;if(KV_SW_ON)b.swd={t:0,n:0,last:-1,waves:[]};}} /* 15 圈彈幕（每 27 幀一圈）；全屏飛劍暫時關閉（KV_SW_ON） */
   if(b.swd)kvSwordStep(b);
   if(b.cosmos){for(const q of b.cosmos){q.t++;q.x+=q.vx;q.y+=q.vy;q.vx*=.99;q.vy*=.99;q.rot+=q.vr;}b.cosmos=b.cosmos.filter(q=>q.t<q.life);if(!b.cosmos.length)b.cosmos=null;}
   if(b.burstFx&&b.burstFx.t<240)addShake(2+10*Math.pow(1-b.burstFx.t/240,1.5)); /* 爆炸後震動約 4 秒 */
   if(b.burstFx&&++b.burstFx.t>=b.burstFx.T)b.burstFx=null;if(b.starFx){b.starFx.t++;if(b.starFx.t>KV_STAR_HOLD+160){const wasRb=b.starFx.rb;b.starFx=null;if(wasRb&&!b.dead&&(!b.tl||b.tl.mode==='hold'||b.tl.mode==='pillars')){kvCancelWarp(b);if(b.pil)b.pil=b.pil.filter(q=>q.t>0);b.tl={mode:'leave',t:0,bodyOff:true,hist:[],auto:true};}}} /* 星空消失後直接接皇女為主（第一次星空爆炸除外） */
-  if(b.rbT!==undefined&&!b.dead){b.rbT++;if(b.rbT>=7200&&!b.tl&&!b.starFx){b.rbT=0;b.rbN=(b.rbN||0)+1; /* 每 2 分鐘再爆一次 */kvCancelWarp(b);if(b.pil)b.pil=b.pil.filter(q=>q.t>0);b.tl={mode:'rbCenter',t:0};b.warpTo={x:WW/2,y:WH/2+42};}} /* 每 2 分鐘再放一次星空爆炸（沒有特寫、玩家不停住） */
+  if(b.rbT!==undefined&&!b.dead){b.rbT++;if(b.rbT>=7200&&!b.tl&&!b.starFx&&!b.pf){b.rbT=0;b.rbN=(b.rbN||0)+1; /* 每 2 分鐘再爆一次 */kvCancelWarp(b);if(b.pil)b.pil=b.pil.filter(q=>q.t>0);b.tl={mode:'rbCenter',t:0};b.warpTo={x:WW/2,y:WH/2+42};}} /* 每 2 分鐘再放一次星空爆炸（沒有特寫、玩家不停住） */
   kvBHStep(b);if(b.rbCharge)b.closeT=(b.closeT||0)+1;if(b.closeUp){b.closeT=(b.closeT||0)+1;if(b.closeT<45)addShake(4*(1-b.closeT/45));}
   const m=b.tl;if(!m)return false;m.t++;b.vx*=.85;b.vy*=.85;
   if(m.mode==='leave'||m.mode==='return'){(m.hist=m.hist||[]).push({mode:m.mode==='leave'?'out':'in',t:m.t});if(m.hist.length>6)m.hist.shift();
@@ -2393,8 +2411,8 @@ function kvBodyOffDraw(b){const m=b.tl,i=Math.floor(b.fr)%12,body=kvFrame(i,'np'
   const pc_=kvPrCanvas(i),po=kvSil(pc_,'pr'+i,'#c46aff'),px=Math.round(pr.x-19.5*KV_PS),py=Math.round(pr.y-28*KV_PS);g.save();g.imageSmoothingEnabled=false;
   for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])g.drawImage(po,px+dx,py+dy);g.drawImage(pc_,px,py);if(b.hurtF>0){g.globalCompositeOperation='lighter';g.globalAlpha=.4;g.drawImage(pc_,px,py);}g.restore();
   b.rx=Math.round(b.x);b.ry=Math.round(b.y);}
-function kvPrFlameStep(b,pr){const F=b.pflame=b.pflame||[];
-  for(let k=0;k<4;k++)F.push({x:pr.x+rnd(-11,11),y:pr.y+rnd(-4,16),vx:rnd(-.35,.35),vy:-rnd(1.2,2.6),life:rnd(20,40)|0,max:40,s:rnd(2,5)|0});
+function kvPrFlameStep(b,pr,n){const F=b.pflame=b.pflame||[];
+  for(let k=0;k<(n||4);k++)F.push({x:pr.x+rnd(-11,11),y:pr.y+rnd(-4,16),vx:rnd(-.35,.35),vy:-rnd(1.2,2.6),life:rnd(20,40)|0,max:40,s:rnd(2,5)|0});
   for(const q of F){q.x+=q.vx+Math.sin((q.life+q.x)/6)*.25;q.y+=q.vy;q.vy*=.98;q.life--;}b.pflame=F.filter(q=>q.life>0);if(b.pflame.length>200)b.pflame.splice(0,b.pflame.length-200);}
 function kvPrFlameDraw(b,pr){
   const p=.85+.15*Math.sin(frameN/9);g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.5*p;g.drawImage(soft(50,'rgba(205,165,255,.9)'),pr.x-50,pr.y-56);g.globalAlpha=.25*p;g.drawImage(soft(22,'rgba(255,250,255,.95)'),pr.x-22,pr.y-30);g.restore(); /* 發光：畫在皇女後面（不用發光層，才不會蓋到皇女） */
@@ -2466,12 +2484,12 @@ function kvHalo(b,s,am){if((b.phase|0)>=2)return;if((b.phase|0)<1||b.dead||!KV_I
   const x=Math.round(b.x-100*KV_S-KV_MX),y=Math.round(b.y-130*KV_S-KV_M),ht=Math.min(1,(b.haloT||0)/60),hk=ht<.75?1.12*(1-Math.pow(1-ht/.75,3)):1.12-.12*((ht-.75)/.25),hd=Math.round(200*KV_HS*hk*s);
   if(hd<1)return;g.save();g.imageSmoothingEnabled=false;g.globalAlpha=am;g.translate(x+KV_PC[0],y+KV_PC[1]);g.rotate(b.haloA||0);g.drawImage(KV_IMG.halo,-hd/2,-hd/2,hd,hd);g.restore();}
 function drawKatavinaFull(b){
-  const i=Math.floor(b.fr)%12,c=kvFrame(i,(b.phase|0)===1?'indigo':'');if(!c)return;const x=Math.round(b.x-100*KV_S-KV_MX),y=Math.round(b.y-130*KV_S-KV_M);
+  const pfo=!!(b.pf&&!b.dead),i=Math.floor(b.fr)%12,c=kvFrame(i,pfo?'np':(b.phase|0)===1?'indigo':'');if(!c)return;const x=Math.round(b.x-100*KV_S-KV_MX),y=Math.round(b.y-130*KV_S-KV_M); /* 皇女離開時：本體用沒有皇女的圖 */
   const p3=(b.phase|0)>=2&&(b.p3done||b.p3vis)&&!b.dead;
   if(!b._extHalo)kvHalo(b,1,1);
   if(p3)kvAura(b,c,i,x,y);
   g.save();g.imageSmoothingEnabled=false;g.globalAlpha=b.dead?Math.max(0,1-b.deathT/420):1;
-  if(p3){const cu=kvFrame(i,'up'),ol=cu&&kvSil(cu,KV_ARM+'u'+i,'#c46aff');if(ol)for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])g.drawImage(ol,x+dx,y+dy);} // 第三階段：紫色外框
+  if(p3){const cu=kvFrame(i,pfo?'npup':'up'),ol=cu&&kvSil(cu,KV_ARM+(pfo?'npu':'u')+i,'#c46aff');if(ol)for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])g.drawImage(ol,x+dx,y+dy);} // 第三階段：紫色外框
   g.drawImage(c,x,y);
   if(b.hurtF>0){g.globalCompositeOperation='lighter';g.globalAlpha=.3;g.drawImage(c,x,y);}g.restore();
   b.rx=Math.round(b.x);b.ry=Math.round(b.y);b.handL=[0,0];}
@@ -3046,7 +3064,7 @@ function render(){
     const sx=shake>0?rnd(-shake,shake):0,sy=shake>0?rnd(-shake,shake):0;shake*=.86;if(shake<.3)shake=0;
     camK*=.8;g.save();gg.save();calcView();g.imageSmoothingEnabled=false;gg.imageSmoothingEnabled=false;
     if(VZ!==1){g.scale(VZ,VZ);gg.scale(VZ,VZ);}KV_CAM=[Math.round(-VX0+sx-camK),Math.round(-VY0+sy)];g.translate(Math.round(-VX0+sx-camK),Math.round(-VY0+sy));gg.translate(Math.round(-VX0+sx-camK),Math.round(-VY0+sy));
-    drawWorld();kvPullPost();kvCbWarpPost();snWarpPost();kvPilPost();kvRockPost();drawScars();drawLastRing();drawMirror();drawAoes();drawLasers();drawGhosts();kvDarkOverlay();kvPilDarkDraw();kvCirclesDraw();kvChainDraw();if(typeof wpnHolePre==='function')wpnHolePre();drawBoss();kvEyeDots();kvPrEnhDraw();kvCpDraw();kvCpWreckDraw(false);kvCpWreckDraw(true);kvMobsDraw();kvMobsDrawTop();snHsDraw();kvP3FxDraw();kvRockDraw();kvCbFxDraw();kvHandCirclesDraw();kvPullDraw();kvPillarsDraw();wpnDraw();kvBeamDraw();if(!(boss&&boss.tl&&boss.tl.mode==='alone')&&!kvStarOn())kvPrinDraw();kvBHDraw();mpDrawRemotes();if(KV_DARK>.01)g.filter=`brightness(${(1-KV_DARK).toFixed(3)})`;kvChairDraw();drawPlayer();g.filter='none';snSmokeDraw();kvArenaDraw();kvStarCover();if(kvStarOn()&&!(boss.tl&&boss.tl.mode==='alone'))kvPrinDraw(); /* 星空期間：皇女法陣畫在星空上面 */kvCosmosDraw();drawTrail();drawBullets();drawParts();drawFX();drawLock();
+    drawWorld();kvPullPost();kvCbWarpPost();snWarpPost();kvPilPost();kvRockPost();drawScars();drawLastRing();drawMirror();drawAoes();drawLasers();drawGhosts();kvDarkOverlay();kvPilDarkDraw();kvCirclesDraw();kvChainDraw();if(typeof wpnHolePre==='function')wpnHolePre();drawBoss();kvEyeDots();kvPrEnhDraw();kvCpDraw();kvCpWreckDraw(false);kvCpWreckDraw(true);kvMobsDraw();kvMobsDrawTop();snHsDraw();kvP3FxDraw();kvRockDraw();kvCbFxDraw();kvHandCirclesDraw();kvPullDraw();kvPillarsDraw();kvPrOutDraw();wpnDraw();kvBeamDraw();if(!(boss&&boss.tl&&boss.tl.mode==='alone')&&!kvStarOn())kvPrinDraw();kvBHDraw();mpDrawRemotes();if(KV_DARK>.01)g.filter=`brightness(${(1-KV_DARK).toFixed(3)})`;kvChairDraw();drawPlayer();g.filter='none';snSmokeDraw();kvArenaDraw();kvStarCover();if(kvStarOn()&&!(boss.tl&&boss.tl.mode==='alone'))kvPrinDraw(); /* 星空期間：皇女法陣畫在星空上面 */kvCosmosDraw();drawTrail();drawBullets();drawParts();drawFX();drawLock();
     g.restore();gg.restore();
     kvBHPost();kvRingPost();kvShieldPost();kvStarEdgePost();kvSuckPost();kvBHTop();kvContrast();kvPrSpot();kvArFlamesTop();kvPrTop();kvSwordsTop();kvLightFx(); // 黑洞周圍扭曲＋扭曲環（畫在整個場景上）
     // 暗角（越靠近 Boss 越壓迫；困難三階有心跳脈動）
@@ -3118,7 +3136,7 @@ function kvPswDraw(b){const s=b.psw,wi=kvSwdWhite(),pi=kvSwdPurple();
 // 皇女為主：皇女背後的火焰與發光＋皇女本身，畫在變暗層上面（不會被壓暗）
 function kvPrEnh2(b){return !!(b&&b.kind==='katavina'&&(b.phase|0)===1&&!b.dead&&b.trans<=0&&!kvCpAlive(b)&&!KV_MOBS.some(m=>m.k==='e'&&m.hp>0));}
 /* 強化中：皇女身上跟「皇女為主」一樣的特效（背後往上噴的火＋紫色外框） */
-function kvPrEnhDraw(){const b=boss;if(!kvPrEnh2(b)||b.hidden||(b.tl&&b.tl.mode==='alone')||b.kvStun)return;const pr=kvPrincessPos(b),i=Math.floor(b.fr)%12;
+function kvPrEnhDraw(){const b=boss;if(!kvPrEnh2(b)||b.hidden||(b.pf&&!b.dead&&!b._pfDraw)||(b.tl&&b.tl.mode==='alone')||b.kvStun)return;const pr=kvPrincessPos(b),i=Math.floor(b.fr)%12;
   kvPrFlameStep(b,pr);g.save();if(b.kvRot){const cy=b.y-150;g.translate(b.x,cy);g.rotate(b.kvRot);g.translate(-b.x,-cy);}kvPrFlameDraw(b,pr);
   const pc_=kvPrCanvas(i),po=kvSil(pc_,'pr'+i,'#c46aff'),px=Math.round(pr.x-19.5*KV_PS),py=Math.round(pr.y-28*KV_PS);g.imageSmoothingEnabled=false;
   for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])g.drawImage(po,px+dx,py+dy);g.drawImage(pc_,px,py);if(b.hurtF>0){g.globalCompositeOperation='lighter';g.globalAlpha=.4;g.drawImage(pc_,px,py);}g.restore();}
