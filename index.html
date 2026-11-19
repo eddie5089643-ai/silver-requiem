@@ -2305,7 +2305,7 @@ function makeKatavina(){
     b.warpFx=null;b.warpHist=[];b.warpS=1;b.warpSH=[];b.haloS=1;b.haloSH=[];b.hidden=false;return true;};
   b._warp=warp;b._C=C;
   /* 第三階段：開始先移到玩家附近，之後隨機放招（火柱／光束／巨石）；第一次皇女為主前不放擎天火柱；放招期間同時追玩家（光束不動） */
-  const p3rand=(b,t)=>{if(t===0){b.p3cur=null;if(!b.p3met)b.p3cur='app';else if(b.p3after===1){b.p3after=2;b._pil3=true;kvPillarsMove(b,0);b.p3cur=kvPillarsMove;b.p3last=kvPillarsMove;}else{const pool=[kvP3Beam,kvP3Rock];if(b.p3alone&&!b.noPil)pool.push(kvPillarsMove);let o=pool.filter(f=>f!==b.p3last).sort(()=>Math.random()-.5);if(pool.includes(b.p3last))o.push(b.p3last); /* 不連續放同一招；其他招都不能放時才重複 */for(const f of o){if(!f(b,0)){b.p3cur=f;b.p3last=f;break;}}if(!b.p3cur)b.p3cur='chase';}return false;}
+  const p3rand=(b,t)=>{if(t===0){b.p3cur=null;if(!b.p3met)b.p3cur='app';else{const pool=[kvP3Beam,kvP3Rock];if(b.p3alone&&!b.noPil)pool.push(kvPillarsMove);let o=pool.filter(f=>f!==b.p3last).sort(()=>Math.random()-.5);if(pool.includes(b.p3last))o.push(b.p3last); /* 不連續放同一招；其他招都不能放時才重複 */for(const f of o){const p3=f===kvPillarsMove&&b.p3after===1;if(p3)b._pil3=true; /* 星空後隨機抽到擎天火柱：只射 3 波、之後不再放 */if(!f(b,0)){b.p3cur=f;b.p3last=f;if(p3)b.p3after=2;break;}if(p3)b._pil3=false;}if(!b.p3cur)b.p3cur='chase';}return false;}
     if(b.p3cur==='app'){kvChase(b);const c=C();if(Math.hypot(c.x-b.x,c.y-140-b.y)<140||t>360){b.p3met=true;return true;}return false;}
     if(b.p3cur==='chase'){kvChase(b);return t>=60;}return b.p3cur(b,t);};
   const stay=(b,t)=>{b.x=WW/2;b.y=GROUND;b.vx=0;b.vy=0;return t>=240;}; // 第一階段：固定在地圖正中央，不移動、不傳送
@@ -3323,7 +3323,7 @@ function kvStreak(sx,sy,SW,a,th,ang){if(a<=.003)return;g.save();g.setTransform(1
     const gr=g.createRadialGradient(0,0,0,0,0,SW);gr.addColorStop(0,`rgba(${c1},${a*al})`);gr.addColorStop(.12,`rgba(${c1},${a*al*.75})`);gr.addColorStop(.45,`rgba(${c2},${a*al*.35})`);gr.addColorStop(1,`rgba(${c2},0)`);g.fillStyle=gr;g.fillRect(-SW,-SW,SW*2,SW*2);g.restore();}
   g.globalCompositeOperation='source-over';g.restore();}
 // 爆出瞬間的大光（鏡頭光暈）：橫向光條＋星芒＋往左飄的光圈，紫色／靛藍色，畫在螢幕座標
-function kvFlareDraw(bf){const k=bf.t/bf.T,e=1-Math.pow(1-k,3),a=Math.min(1,bf.t/3)*Math.pow(1-k,1.3);if(a<=.003)return;
+function kvFlareDraw(bf){const k=bf.t/bf.T;if(!(k>=0&&k<1))return; /* 多人成員：時間外推超過 T 時會算出 NaN 讓整幀畫面中斷（星空閃一下），直接不畫 */const e=1-Math.pow(1-k,3),a=Math.min(1,bf.t/3)*Math.pow(1-k,1.3);if(!(a>.003))return;
   const sx=(bf.x+KV_CAM[0])*VZ,sy=(bf.y+KV_CAM[1])*VZ;
   if(!bf.rays){bf.rays=[];for(let i=0;i<16;i++)bf.rays.push({a:i/16*TAU+rnd(-.12,.12),l:rnd(.45,1),w:rnd(1.2,2.6)});bf.rot=rnd(0,TAU);}
   g.save();g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='lighter';
