@@ -3170,6 +3170,9 @@ const KV_AR_N=4;function kvArR(a,th){const t=a.t||0;return 1-.045*(.5+.5*Math.si
 function kvArPt(a,th,ext){const c=Math.cos(th),s_=Math.sin(th),den=Math.pow(Math.pow(Math.abs(c),KV_AR_N)+Math.pow(Math.abs(s_),KV_AR_N),1/KV_AR_N),r=a.h*kvArR(a,th)/den+(ext||0);return [a.cx+c*r,a.cy+s_*r];}
 function kvArOut(a,x,y){const dx=x-a.cx,dy=y-a.cy,d=Math.pow(Math.pow(Math.abs(dx),KV_AR_N)+Math.pow(Math.abs(dy),KV_AR_N),1/KV_AR_N)/a.h;return d>kvArR(a,Math.atan2(dy,dx));}
 function kvArPath(c,a,ext,N,tf,cont){if(!cont)c.beginPath();for(let i=0;i<=N;i++){const th=i/N*TAU,e=typeof ext==='function'?ext(th):ext,p=kvArPt(a,th,e),q=tf?tf(p):p;i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]);}c.closePath();}
+/* 圈外火焰：參考本體下半身（同一組 12 幀動畫），改成白色／白紫色兩組，交錯播放 */
+let KV_ARS=null;function kvArSheets(){if(KV_ARS)return KV_ARS;const im=KV_IMG.lower;if(!im||!im.complete||!im.width)return null;const w=im.width,h=im.height,c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);const src=x.getImageData(0,0,w,h).data;
+  const mkS=(r,g_,b_)=>{const o=mk(w,h),ox=o.getContext('2d'),id=ox.createImageData(w,h),d=id.data;for(let i=0;i<src.length;i+=4){const al=src[i+3];if(!al)continue;const L=(src[i]+src[i+1]+src[i+2])/3;if(L>60){d[i]=r;d[i+1]=g_;d[i+2]=b_;d[i+3]=al;}else{d[i]=r*.4;d[i+1]=g_*.32;d[i+2]=b_*.5;d[i+3]=al*.3;}}ox.putImageData(id,0,0);return o;};KV_ARS=[mkS(255,255,255),mkS(214,184,255)];return KV_ARS;}
 function kvArFl(a,th){const t=a.t||0;return 60+22*Math.sin(th*17+t*.21)+14*Math.sin(th*29-t*.33+2)+9*Math.sin(th*43+t*.5);} /* 火焰往外延伸的長度（會跳動） */
 function kvArenaStep(b){const on=b.tl&&b.tl.bodyOff&&!b.dead;if(!b.ar){if(!on||b.tl.mode!=='alone')return;b.ar={h:KV_AR_MAX,cx:WW/2,cy:WH/2,t:0,parts:[]};}
   const a=b.ar;a.t++;a.h+=((on?KV_AR_MIN:KV_AR_MAX+200)-a.h)*(on?.012:.03);if(!on&&a.h>KV_AR_MAX){b.ar=null;return;}
@@ -3188,6 +3191,10 @@ function kvArenaDraw(){const b=boss;if(!b||b.kind!=='katavina'||!b.ar)return;con
       g.drawImage(KV_SNAP,scx-scx*k,scy-scy*k,W*k,H*k);g.restore();}
     g.restore();}
   g.save();g.fillStyle='rgba(150,90,220,.12)';g.beginPath();g.rect(L,T,Rr-L,B-T);kvArPath(g,a,0,N,null,true);g.fill('evenodd');g.restore(); /* 圈外淡紫白色 */
+  {const SH=kvArSheets();if(SH){const per=Math.max(1,a.h)*8,n=Math.max(24,Math.round(per/80)),fr=frameN*.13,sc=.95;g.save();g.imageSmoothingEnabled=false; /* 圈外：白色、白紫色火焰兩組交錯（位置錯開半格、明暗輪流） */
+    for(let row=0;row<2;row++)for(let i=0;i<n;i++){const th=(i+row*.5)/n*TAU,p=kvArPt(a,th,row?34:8);if(p[0]<VX0-140||p[0]>VX0+VW_+140||p[1]<VY0-140||p[1]>VY0+VH_+140)continue;
+      const ci=(i+row)%2,fi=Math.floor(fr+i*5+row*6)%12,pul=.5+.5*Math.sin(frameN*.09+i*1.7+row*Math.PI);const al=(row?.75:1)*(.5+.5*pul),sz=200*sc*(row?1.15:1)*(.9+.1*pul),sx=(fi%4)*200,sy=Math.floor(fi/4)*200;for(const [c,m] of [[g,al],[gg,al*.6]]){c.save();c.globalAlpha=m;c.translate(p[0],p[1]);c.rotate(th-Math.PI/2);c.imageSmoothingEnabled=false;c.drawImage(SH[ci],sx,sy,200,200,-sz/2,-sz*.18,sz,sz);c.restore();}}
+    g.restore();}}
   const fl=.85+.15*Math.sin(frameN*.4);
   gg.save();gg.lineJoin='round';for(const [w,al,col] of [[46,.14,'#b080ff'],[22,.22,'#e8d8ff'],[8,.35,'#ffffff']]){gg.globalAlpha=al*fl;gg.strokeStyle=col;gg.lineWidth=w;kvArPath(gg,a,th=>kvArFl(a,th)*.2,N);gg.stroke();}gg.restore(); /* 光效 */
   g.save();g.lineJoin='round';g.lineCap='round';
