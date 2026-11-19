@@ -884,7 +884,7 @@ const pShoulder=p=>[p.rx+2.5*PS*p.face,p.ry-31*PS];
 function hurt(d){
   if(P&&P.__rp){const hc=MP.hcd=MP.hcd||{};if((hc[P.__rp]||0)>frameN)return true;hc[P.__rp]=frameN+10;mpSendTo(P.__rp,{t:'hurt',d});return true;}
   if(godMode||P.iframes>0||P.dashT>0||P.dashI>0||P.dead||state!=='fight')return false;
-  const gd=(mouse.r||P.parryT>0)&&!paused&&(wpnHas('katana')||wpnHas('staff')); /* 剛按下（彈反窗口中沒被彈掉的攻擊）也算防禦 */ /* 按住右鍵防禦：受擊傷害減半 */
+  const gd=P.parryT>0&&!paused&&(wpnHas('katana')||wpnHas('staff')); /* 防禦減傷：按下右鍵後的判定幀數跟振刀一樣（振刀窗口內沒被彈掉的攻擊減半） */ /* 按住右鍵防禦：受擊傷害減半 */
   const dmg=Math.round(d*D.dmg*(gd?.5:1));P.hp-=dmg;if(gd){try{guardFx();}catch(e){}}P.iframes=Math.round((boss&&boss.kind==='katavina'&&boss.starFx&&!boss.dead?21:42)*(boss&&boss.kind==='katavina'&&!boss.dead&&boss.tl&&boss.tl.mode==='alone'?2/3:1)); /* 皇女為主期間：受擊無敵時間減三分之一 */stats.hits++; /* 卡塔薇娜星空期間：受擊無敵時間減半 */
   const c=pc();pop(c.x,P.y-6,dmg,gd?'#bcd4ff':'#ff6070');if(gd)SFX.clangLow&&SFX.clangLow();else SFX.hurt();addShake(7);flash=.35;flashCol='200,30,50';
   part(c.x,c.y,16,'#ff6070',2.6,30,1);
