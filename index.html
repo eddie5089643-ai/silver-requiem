@@ -2305,7 +2305,7 @@ function makeKatavina(){
     b.warpFx=null;b.warpHist=[];b.warpS=1;b.warpSH=[];b.haloS=1;b.haloSH=[];b.hidden=false;return true;};
   b._warp=warp;b._C=C;
   /* 第三階段：開始先移到玩家附近，之後隨機放招（火柱／光束／巨石）；第一次皇女為主前不放擎天火柱；放招期間同時追玩家（光束不動） */
-  const p3rand=(b,t)=>{if(t===0){b.p3cur=null;if(!b.p3met)b.p3cur='app';else{const pool=[kvP3Beam,kvP3Rock];if(b.p3alone&&!b.noPil)pool.push(kvPillarsMove);let o=pool.filter(f=>f!==b.p3last).sort(()=>Math.random()-.5);if(pool.includes(b.p3last))o.push(b.p3last); /* 不連續放同一招；其他招都不能放時才重複 */for(const f of o){const p3=f===kvPillarsMove&&b.p3after===1;if(p3)b._pil3=true; /* 星空後隨機抽到擎天火柱：只射 3 波、之後不再放 */if(!f(b,0)){b.p3cur=f;b.p3last=f;if(p3)b.p3after=2;break;}if(p3)b._pil3=false;}if(!b.p3cur)b.p3cur='chase';}return false;}
+  const p3rand=(b,t)=>{if(t===0){b.p3cur=null;if(!b.p3met)b.p3cur='app';else{const pool=[kvP3Beam,kvP3Rock];if(b.pilOK&&!b.starFx)pool.push(kvPillarsMove); /* 第一次星空完全消失後，擎天火柱才加入隨機招式 */let o=pool.filter(f=>f!==b.p3last).sort(()=>Math.random()-.5);if(pool.includes(b.p3last))o.push(b.p3last); /* 不連續放同一招；其他招都不能放時才重複 */for(const f of o){if(!f(b,0)){b.p3cur=f;b.p3last=f;break;}}if(!b.p3cur)b.p3cur='chase';}return false;}
     if(b.p3cur==='app'){kvChase(b);const c=C();if(Math.hypot(c.x-b.x,c.y-140-b.y)<140||t>360){b.p3met=true;return true;}return false;}
     if(b.p3cur==='chase'){kvChase(b);return t>=60;}return b.p3cur(b,t);};
   const stay=(b,t)=>{b.x=WW/2;b.y=GROUND;b.vx=0;b.vy=0;return t>=240;}; // 第一階段：固定在地圖正中央，不移動、不傳送
@@ -2365,7 +2365,7 @@ function kvTimeline(b){kvPfStep(b);const pos=b.p3clk,prev=b.tlPrev===undefined?p
   if(b.swd)kvSwordStep(b);
   if(b.cosmos){for(const q of b.cosmos){q.t++;q.x+=q.vx;q.y+=q.vy;q.vx*=.99;q.vy*=.99;q.rot+=q.vr;}b.cosmos=b.cosmos.filter(q=>q.t<q.life);if(!b.cosmos.length)b.cosmos=null;}
   if(b.burstFx&&b.burstFx.t<240)addShake(2+10*Math.pow(1-b.burstFx.t/240,1.5)); /* 爆炸後震動約 4 秒 */
-  if(b.burstFx&&++b.burstFx.t>=b.burstFx.T)b.burstFx=null;if(b.starFx){b.starFx.t++;if(b.starFx.t>KV_STAR_HOLD+160){const wasRb=b.starFx.rb;b.starFx=null;if(wasRb&&!b.dead&&(!b.tl||b.tl.mode==='hold'||b.tl.mode==='pillars')){kvCancelWarp(b);if(b.pil)b.pil=b.pil.filter(q=>q.t>0);b.tl={mode:'leave',t:0,bodyOff:true,hist:[],auto:true};}}} /* 星空消失後直接接皇女為主（第一次星空爆炸除外） */
+  if(b.burstFx&&++b.burstFx.t>=b.burstFx.T)b.burstFx=null;if(b.starFx){b.starFx.t++;if(b.starFx.t>KV_STAR_HOLD+160){const wasRb=b.starFx.rb;b.starFx=null;if(!wasRb&&!b.pilOK){b.pilOK=true;b.p3elite=true;b.e2T=2400-120;} /* 第一次星空完全消失：擎天火柱加入隨機、開始出菁英怪 */if(wasRb&&!b.dead&&(!b.tl||b.tl.mode==='hold'||b.tl.mode==='pillars')){kvCancelWarp(b);if(b.pil)b.pil=b.pil.filter(q=>q.t>0);b.tl={mode:'leave',t:0,bodyOff:true,hist:[],auto:true};}}} /* 星空消失後直接接皇女為主（第一次星空爆炸除外） */
   if(b.rbT!==undefined&&!b.dead){b.rbT++;if(b.rbT>=7200&&!b.tl&&!b.starFx&&!b.pf){b.rbT=0;b.rbN=(b.rbN||0)+1; /* 每 2 分鐘再爆一次 */kvCancelWarp(b);if(b.pil)b.pil=b.pil.filter(q=>q.t>0);b.tl={mode:'rbCenter',t:0};b.warpTo={x:WW/2,y:WH/2+42};}} /* 每 2 分鐘再放一次星空爆炸（沒有特寫、玩家不停住） */
   kvBHStep(b);if(b.rbCharge)b.closeT=(b.closeT||0)+1;if(b.closeUp){b.closeT=(b.closeT||0)+1;if(b.closeT<45)addShake(4*(1-b.closeT/45));}
   const m=b.tl;if(!m)return false;m.t++;b.vx*=.85;b.vy*=.85;
@@ -2393,7 +2393,7 @@ function kvTimeline(b){kvPfStep(b);const pos=b.p3clk,prev=b.tlPrev===undefined?p
   if(m.mode==='pillars'){
     if(!m.started){const c=pc(),tx=clamp(c.x,160,WW-160),ty=clamp(VY0+VH_*.4,260,GROUND-156); // 先飛到玩家畫面的上方
       b.vx=lerp(b.vx,clamp((tx-b.x)*.06,-7,7),.15);b.vy=lerp(b.vy,clamp((ty-b.y)*.06,-7,7),.15);b.x+=b.vx;b.y+=b.vy;if(Math.abs(b.vx)>.3)b.face=b.vx<0?-1:1;
-      if(m.t>=60){m.started=true;kvPillarsStart(b);}return true;}
+      if(m.t>=60){m.started=true;kvPillarsStart(b,b.pilOK?3:5);}return true;}
     b.vx=b.vy=0;if(!b.pil){b.tl=null;b.ai=0;b.t=0;b.pause=20;}return true;} /* 放招時停在原地，放完恢復一般移動 */
   return false;}
 // 本體退出／皇女獨自巡遊／本體回來 的繪製
@@ -3633,11 +3633,11 @@ function kvRockPost(){const b=boss;if(!b||b.kind!=='katavina')return;const X=KV_
     kvDistortRing((w.x-VX0)*VZ,(w.y-VY0)*VZ,(w.r-w.bw*.3)*VZ,w.bw*.5*VZ,(w.big?40:16)*(1-e)*VZ,1);}
   g.restore();}
 function kvChase(b,sp=1){const c=b._C?b._C():pc(),tx=clamp(c.x,140,WW-140),ty=clamp(c.y-140+Math.sin((b.anim||0)/40)*18,260,GROUND-156),mx=4*sp;b.vx=lerp(b.vx||0,clamp((tx-b.x)*.04*sp,-mx,mx),.08);b.vy=lerp(b.vy||0,clamp((ty-b.y)*.04*sp,-mx,mx),.08);b.x+=b.vx;b.y+=b.vy;if(Math.abs(b.vx)>.3)b.face=b.vx<0?-1:1;} /* 放招期間追玩家（同『上方』的動作） */
-function kvPillarsMove(b,t){if(t===0){b._pmS=false;const k=b.p3clk||0;if(!b._pil3&&((k>=78-14&&k<78)||b.starFx))return true;} /* 星空期間也不放 */ /* 皇女為主（1:18）前約 14 秒內不放擎天火柱，直接換下一招 */
+function kvPillarsMove(b,t){if(t===0){b._pmS=false;const k=b.p3clk||0;if((k>=78-14&&k<78)||b.starFx)return true;} /* 星空期間也不放 */ /* 皇女為主（1:18）前約 14 秒內不放擎天火柱，直接換下一招 */
   if(!b._pmS){const c=pc(),tx=clamp(c.x,160,WW-160),ty=clamp(VY0+VH_*.4,260,GROUND-156);
     b.vx=lerp(b.vx,clamp((tx-b.x)*.06,-7,7),.15);b.vy=lerp(b.vy,clamp((ty-b.y)*.06,-7,7),.15);b.x+=b.vx;b.y+=b.vy;if(Math.abs(b.vx)>.3)b.face=b.vx<0?-1:1;
-    if(t>=60&&!b.pil){b._pmS=true;kvPillarsStart(b,b._pil3?3:5);}return false;}
-  kvChase(b);if(!b.pil&&b._pil3){b._pil3=false;b.noPil=true;b.p3elite=true;b.e2T=2400-120;} /* 星空後的擎天火柱（3 波）放完：不再放，開始出現菁英怪 */return !b.pil;}
+    if(t>=60&&!b.pil){b._pmS=true;kvPillarsStart(b,b.pilOK?3:5); /* 星空後：每次 3 波 */}return false;}
+  kvChase(b); /* 星空後的擎天火柱（3 波）放完：不再放，開始出現菁英怪 */return !b.pil;}
 function kvPillarsStep(b){if(!b.pil)return;const c=pc();let alive=false;
   for(const q of b.pil){q.t++;const t=q.t;if(t<0){alive=true;continue;}const T1=KV_PIL_TELE,T2=T1+KV_PIL_GROW,T3=T2+KV_PIL_HOLD,T4=T3+KV_PIL_FADE;if(t<=T4)alive=true;
     if(t===1&&q.first)SFX.glint&&SFX.glint();
