@@ -2365,7 +2365,7 @@ function kvTimeline(b){kvPfStep(b);const pos=b.p3clk,prev=b.tlPrev===undefined?p
   if(b.swd)kvSwordStep(b);
   if(b.cosmos){for(const q of b.cosmos){q.t++;q.x+=q.vx;q.y+=q.vy;q.vx*=.99;q.vy*=.99;q.rot+=q.vr;}b.cosmos=b.cosmos.filter(q=>q.t<q.life);if(!b.cosmos.length)b.cosmos=null;}
   if(b.burstFx&&b.burstFx.t<240)addShake(2+10*Math.pow(1-b.burstFx.t/240,1.5)); /* 爆炸後震動約 4 秒 */
-  if(b.burstFx&&++b.burstFx.t>=b.burstFx.T)b.burstFx=null;if(b.starFx){b.starFx.t++;if(b.starFx.t>KV_STAR_HOLD+160){const wasRb=b.starFx.rb;b.starFx=null;if(!wasRb&&!b.pilOK){b.pilOK=true;b.p3elite=true;b.e2T=2400-120;} /* 第一次星空完全消失：擎天火柱加入隨機、開始出菁英怪 */if(wasRb&&!b.dead&&(!b.tl||b.tl.mode==='hold'||b.tl.mode==='pillars')){kvCancelWarp(b);if(b.pil)b.pil=b.pil.filter(q=>q.t>0);b.tl={mode:'leave',t:0,bodyOff:true,hist:[],auto:true};}}} /* 星空消失後直接接皇女為主（第一次星空爆炸除外） */
+  if(b.burstFx&&++b.burstFx.t>=b.burstFx.T)b.burstFx=null;if(b.starFx){b.starFx.t++;if(b.starFx.t>KV_STAR_HOLD+160){const wasRb=b.starFx.rb;b.starFx=null;if(!wasRb&&!b.pilOK){b.pilOK=true;} /* 第一次星空完全消失：擎天火柱加入隨機（不再出菁英怪） */if(wasRb&&!b.dead&&(!b.tl||b.tl.mode==='hold'||b.tl.mode==='pillars')){kvCancelWarp(b);if(b.pil)b.pil=b.pil.filter(q=>q.t>0);b.tl={mode:'leave',t:0,bodyOff:true,hist:[],auto:true};}}} /* 星空消失後直接接皇女為主（第一次星空爆炸除外） */
   if(b.rbT!==undefined&&!b.dead){b.rbT++;if(b.rbT>=7200&&!b.tl&&!b.starFx&&!b.pf){b.rbT=0;b.rbN=(b.rbN||0)+1; /* 每 2 分鐘再爆一次 */kvCancelWarp(b);if(b.pil)b.pil=b.pil.filter(q=>q.t>0);b.tl={mode:'rbCenter',t:0};b.warpTo={x:WW/2,y:WH/2+42};}} /* 每 2 分鐘再放一次星空爆炸（沒有特寫、玩家不停住） */
   kvBHStep(b);if(b.rbCharge)b.closeT=(b.closeT||0)+1;if(b.closeUp){b.closeT=(b.closeT||0)+1;if(b.closeT<45)addShake(4*(1-b.closeT/45));}
   const m=b.tl;if(!m)return false;m.t++;b.vx*=.85;b.vy*=.85;
