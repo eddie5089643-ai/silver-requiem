@@ -1263,6 +1263,14 @@ function mRiftFast(b,t){ /* 新招：裂空斬 5～8 道，速度＝最終謝幕
     b.swLA=toLA(b,l.a)+1.3;b.bladeL=70;mGhost(b,'#ffffff');SFX.riftLite?SFX.riftLite():SFX.rift();addShake(3);flash=Math.max(flash,.06);flashCol='255,255,255';l.done=true;}
   b.rfL=b.rfL.filter(l=>!l.done);
   if(t>=24+b.rfN*9+18+24){b.sw=null;b.fly=false;b.flying=false;return true;}return false;}
+function mRiftRing(b,t){ /* 極難第四階段：Boss 停在原地，周圍隨機方向放 8～12 道裂空斬（每道 0.1 秒，不瞄玩家） */
+  if(t===0){b.rrN=8+(Math.random()*5|0);b.rrL=[];b.fly=true;b.flying=true;b.sheathed=false;b.weapon='katana';b.vx=b.vy=0;SFX.glint&&SFX.glint();ring(b.x,b.y-24,'#ffffff',5,26);}
+  b.vx=0;b.vy=0;const i=(t-24)/6;if(t>=24&&Number.isInteger(i)&&i<b.rrN){const oa=rnd(0,TAU),orr=rnd(30,150),ox=b.x+Math.cos(oa)*orr,oy=b.y-24+Math.sin(oa)*orr,a=rnd(0,TAU);b.rrL.push({at:t+18,a,x:ox,y:oy});
+    b.sw={cd:COMBO[i%3]};b.swLA=toLA(b,a)-(i%2?2.2:-1.4);fx.push({type:'tline',x:ox-Math.cos(a)*1500,y:oy-Math.sin(a)*1500,x2:ox+Math.cos(a)*1500,y2:oy+Math.sin(a)*1500,life:18,max:18,col:'#ff2e4a'});part(ox,oy,4,'#ffffff',1.5,14);if(i%3===0)SFX.peril();}
+  for(const l of b.rrL)if(t===l.at){strike({kind:'line',x:l.x,y:l.y,a:l.a,r:11,life:5,parry:false,dmg:52,b});fx.push({type:'rift',x:l.x,y:l.y,a:l.a,life:18,max:18});riftSparks(l.x,l.y,l.a,10);
+    b.swLA=toLA(b,l.a)+1.3;b.bladeL=70;mGhost(b,'#ffffff');SFX.riftLite?SFX.riftLite():SFX.rift();addShake(3);flash=Math.max(flash,.06);flashCol='255,255,255';l.done=true;}
+  b.rrL=b.rrL.filter(l=>!l.done);
+  if(t>=24+b.rrN*6+18+24){b.sw=null;b.fly=false;b.flying=false;return true;}return false;}
 let MCL=null; /* 第四階段起的分身（第一階段招式；可被打、不會消失；追 Boss 的非仇恨對象） */
 function mclStep(){const b=boss;
   if(!(GAMEDIFF===2&&b&&b.kind==='mirror'&&!b.dead&&(b.phase|0)>=3&&state==='fight')){if(MCL&&(!b||b.dead||state!=='fight'||b.kind!=='mirror'))MCL=null;return;}
@@ -2539,7 +2547,7 @@ const BOSSES=[makeMirror,makeKatavina];
 function startFight(i){
   chat.all=[];chat.log=[];chat.sc=0; /* 新的一場：聊天記錄重新開始 */
   KV_DEBRIS=[];KV_PL.cd=0;KV_PL.fx=null;KV_PL.suck=null;KV_CP_WRECK.length=0;KV_CH_DROP.length=0;KV_GLASS=[];KV_FB=null;KV_MOBS=[];KV_GIBS=[];KV_SHARDS=[];KV_SPOTA=0;KV_SPK=[];KV_SPKA=0;KV_SPKW=0;KV_VIG=.10;KV_DARK=0;KV_PDK=0;KV_PBG=0;KV_MOBOL=0;KV_RK=kvRkNew();KV_CBF={sc:[],ch:[]};KV_CORPSE=[];KV_FALL=[];if(boss)boss.starFx=null;{const pal=BOSSES[i]===makeKatavina;WW=pal?2700:3600;WH=pal?2700:1200;GROUND=pal?2600:1100;PLATS.length=0;PLATS.push(...(pal?kvGenPlats():PLATS_ALL.map(q=>Object.assign({},q))));} /* 宮殿地圖：正方形 2700×2700 */ // 宮殿地圖：寬 2700（原 1800 的 1.5 倍）、自己的平台
-  D=DIFFS[diffI];bossSel=i;P=newPlayer();boss=BOSSES[i]();curCol=boss.col;if(GAMEDIFF>=1){boss.mhp=boss.hp=Math.round(boss.mhp*(GAMEDIFF===2?2:1.5));boss.ghostHp=boss.hp;}if(GAMEDIFF===2)boss.xStart=boss.kind==='mirror'?2:boss.kind==='katavina'?1:null;if(GAMEDIFF===2&&boss.kind==='mirror'&&boss.phases[3]){const L=boss.phases[3];L.splice(4,0,mRiftFast);L.splice(9,0,mRiftFast);L.splice(14,0,mRiftFast);L.push(mRiftFast);} /* 極難第四階段：多一招快速裂空斬 */MCL=null; /* 極難：血量 +100%；鏡中銀影直接第三階段、卡塔薇娜直接第二階段（血量不減） */XDQ=[];
+  D=DIFFS[diffI];bossSel=i;P=newPlayer();boss=BOSSES[i]();curCol=boss.col;if(GAMEDIFF>=1){boss.mhp=boss.hp=Math.round(boss.mhp*(GAMEDIFF===2?2:1.5));boss.ghostHp=boss.hp;}if(GAMEDIFF===2)boss.xStart=boss.kind==='mirror'?2:boss.kind==='katavina'?1:null;if(GAMEDIFF===2&&boss.kind==='mirror'&&boss.phases[3]){const L=boss.phases[3];L.splice(4,0,mRiftFast);L.splice(9,0,mRiftFast);L.splice(14,0,mRiftFast);L.push(mRiftFast);L.splice(7,0,mRiftRing);} /* 極難第四階段：多一招快速裂空斬 */MCL=null; /* 極難：血量 +100%；鏡中銀影直接第三階段、卡塔薇娜直接第二階段（血量不減） */XDQ=[];
   bullets=[];lasers=[];strikes=[];aoes=[];parts=[];fx=[];pops=[];ghosts=[];trail=[];weather=[];pqi=[];pshots=[];PWP=[];PWT=[];if(typeof CLONES!=='undefined'){CLONES=[];CLONE_POOL=[];}if(typeof SNH!=='undefined')SNH=[];crescents=[];scars=[];camK=0;execT=0;
   for(const c of snapPool())c.used=false;
   stats={time:0,parries:0,hits:0,pots:0,books:0,deaths:0};state='fight';introT=0;endT=0;paused=false;bgL=0;
