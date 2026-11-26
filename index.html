@@ -3116,7 +3116,7 @@ function render(){
     const sx=shake>0?rnd(-shake,shake):0,sy=shake>0?rnd(-shake,shake):0;shake*=.86;if(shake<.3)shake=0;
     camK*=.8;g.save();gg.save();calcView();g.imageSmoothingEnabled=false;gg.imageSmoothingEnabled=false;
     if(VZ!==1){g.scale(VZ,VZ);gg.scale(VZ,VZ);}KV_CAM=[Math.round(-VX0+sx-camK),Math.round(-VY0+sy)];g.translate(Math.round(-VX0+sx-camK),Math.round(-VY0+sy));gg.translate(Math.round(-VX0+sx-camK),Math.round(-VY0+sy));
-    drawWorld();kvPullPost();kvCbWarpPost();snWarpPost();kvPilPost();kvRockPost();drawScars();drawLastRing();drawMirror();drawAoes();drawLasers();drawGhosts();kvDarkOverlay();kvPilDarkDraw();kvCirclesDraw();kvChainDraw();if(typeof wpnHolePre==='function')wpnHolePre();drawBoss();drawMcl();kvEyeDots();kvPrEnhDraw();kvCpDraw();kvCpWreckDraw(false);kvCpWreckDraw(true);kvMobsDraw();kvMobsDrawTop();snHsDraw();kvP3FxDraw();kvRockDraw();kvCbFxDraw();kvHandCirclesDraw();kvPullDraw();kvPillarsDraw();kvPrOutDraw();wpnDraw();kvBeamDraw();if(!(boss&&boss.tl&&boss.tl.mode==='alone')&&!kvStarOn())kvPrinDraw();kvBHDraw();mpDrawRemotes();if(KV_DARK>.01)g.filter=`brightness(${(1-KV_DARK).toFixed(3)})`;kvChairDraw();drawPlayer();g.filter='none';snSmokeDraw();kvArenaDraw();kvStarCover();if(kvStarOn()&&!(boss.tl&&boss.tl.mode==='alone'))kvPrinDraw(); /* 星空期間：皇女法陣畫在星空上面 */kvCosmosDraw();drawTrail();drawBullets();drawParts();riftWarpPost();drawFX();drawLock();
+    drawWorld();kvPullPost();kvCbWarpPost();snWarpPost();kvPilPost();mRiftPost();kvRockPost();drawScars();drawLastRing();drawMirror();drawAoes();drawLasers();drawGhosts();kvDarkOverlay();kvPilDarkDraw();kvCirclesDraw();kvChainDraw();if(typeof wpnHolePre==='function')wpnHolePre();drawBoss();drawMcl();kvEyeDots();kvPrEnhDraw();kvCpDraw();kvCpWreckDraw(false);kvCpWreckDraw(true);kvMobsDraw();kvMobsDrawTop();snHsDraw();kvP3FxDraw();kvRockDraw();kvCbFxDraw();kvHandCirclesDraw();kvPullDraw();kvPillarsDraw();kvPrOutDraw();wpnDraw();kvBeamDraw();if(!(boss&&boss.tl&&boss.tl.mode==='alone')&&!kvStarOn())kvPrinDraw();kvBHDraw();mpDrawRemotes();if(KV_DARK>.01)g.filter=`brightness(${(1-KV_DARK).toFixed(3)})`;kvChairDraw();drawPlayer();g.filter='none';snSmokeDraw();kvArenaDraw();kvStarCover();if(kvStarOn()&&!(boss.tl&&boss.tl.mode==='alone'))kvPrinDraw(); /* 星空期間：皇女法陣畫在星空上面 */kvCosmosDraw();drawTrail();drawBullets();drawParts();riftWarpPost();drawFX();drawLock();
     g.restore();gg.restore();
     kvBHPost();kvRingPost();kvShieldPost();kvStarEdgePost();kvSuckPost();kvBHTop();kvContrast();kvPrSpot();kvArFlamesTop();kvPrTop();kvSwordsTop();kvLightFx(); // 黑洞周圍扭曲＋扭曲環（畫在整個場景上）
     // 暗角（越靠近 Boss 越壓迫；困難三階有心跳脈動）
@@ -3438,6 +3438,13 @@ function kvPilPost(){const b=boss;if(!b||b.kind!=='katavina'||!b.pil)return;let 
     const A=(3+11*t/KV_PIL_TELE)*VZ*(1+.15*Math.sin(t*.5)),N=8;
     for(const sd of [-1,1])for(let j=0;j<N;j++){const r0=j*BW/N,r1=r0+BW/N+1,rm=(r0+r1)/2,u=(j+.5)/N,d=A*Math.sin(u*Math.PI)*Math.cos(u*Math.PI*.5),k=rm/(rm+d);
       g.save();g.beginPath();g.rect(sd<0?sx-r1:sx+r0,0,r1-r0,H);g.clip();g.drawImage(KV_SNAP,sx-sx*k,0,W*k,H);g.restore();}}
+  if(snap)g.restore();}
+function mRiftPost(){let snap=false; /* 裂空斬：裂口外側的空氣往內扭曲（裂口本身不扭曲；整幀只取一次畫面，多道不會疊加扭曲） */
+  for(const q of fx){if(q.type!=='rift')continue;const u=1-q.life/q.max;if(u>=1)continue;const sx=(q.x-VX0)*VZ,sy=(q.y-VY0)*VZ;if(sx<-1600||sx>W+1600||sy<-1600||sy>H+1600)continue;
+    if(!snap){kvSnapBuf();snap=true;g.save();g.setTransform(1,0,0,1,0,0);}
+    const G=12*VZ,BW=56*VZ,N=6,A=14*VZ*Math.pow(1-u,1.5),L=3000;if(A<.3)continue;
+    for(const sd of [-1,1])for(let j=0;j<N;j++){const r0=G+j*BW/N,r1=r0+BW/N+1,rm=(r0+r1)/2,v=(j+.5)/N,d=A*Math.sin(v*Math.PI)*Math.cos(v*Math.PI*.5),k=rm/(rm+d);
+      g.save();g.translate(sx,sy);g.rotate(q.a);g.beginPath();g.rect(-L,sd<0?-r1:r0,L*2,r1-r0);g.clip();g.scale(1,k);g.rotate(-q.a);g.translate(-sx,-sy);g.drawImage(KV_SNAP,0,0);g.restore();}}
   if(snap)g.restore();}
 function kvPilDarkDraw(){if(KV_PDK<=.004)return;g.save();g.setTransform(1,0,0,1,0,0);g.fillStyle=`rgba(0,0,0,${KV_PDK.toFixed(3)})`;g.fillRect(0,0,W,H);g.restore();}
 function kvEyeDots(){const b=boss;if(!b||b.kind!=='katavina'||b.dead||b.hidden||(b.tl&&b.tl.bodyOff)||state!=='fight'||kvStarOn()){if(b)b.eyeH2=null;return;}const dk=Math.max(KV_DARK/.55,KV_PDK/.3);if(dk<.02){b.eyeH2=null;return;}const ea=Math.min(1,dk); /* 背景變暗時本體眼睛浮現光點：做法同星空期間（兩點白色光點＋紫白拖尾＋光暈），亮度跟著暗的程度 */
