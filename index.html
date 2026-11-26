@@ -4042,7 +4042,7 @@ function mpHostMsg(c,d){if(!d)return;
   if(d.t==='hello'){if(MP.players.length>=6||(MP.started&&state!=='fight')){c.send({t:'full'});setTimeout(()=>{try{c.close();}catch(e){}},400);return;}
     const used=new Set(MP.players.map(p=>p.slot));let sl=0;while(used.has(sl))sl++;
     MP.conns[c.peer]=c;MP.players.push({id:c.peer,slot:sl,male:!!d.male});c.send({t:'welcome',id:c.peer,slot:sl,code:MP.code});mpBroadcastLobby();mpUI();
-    if(MP.started&&state==='fight'&&boss){const add=Math.round((boss.kind==='katavina'?25000:13500)*(GAMEDIFF===1?1.5:1));boss.mhp+=add;boss.hp+=add;boss.ghostHp=Math.max(boss.ghostHp||0,boss.hp);c.send({t:'start',n:MP.players.length,bi:MP.bi||0,df:GAMEDIFF,re:1});} /* 輸入房號中途加入：直接進戰鬥，Boss 多一份血量 */
+    if(MP.started&&state==='fight'&&boss){const add=Math.round((boss.kind==='katavina'?25000:12000)*(GAMEDIFF===1?1.5:1));boss.mhp+=add;boss.hp+=add;boss.ghostHp=Math.max(boss.ghostHp||0,boss.hp);c.send({t:'start',n:MP.players.length,bi:MP.bi||0,df:GAMEDIFF,re:1});} /* 輸入房號中途加入：直接進戰鬥，Boss 多一份血量 */
     return;}
   if(d.t==='male'){const p=MP.players.find(q=>q.id===c.peer);if(p){p.male=!!d.male;mpBroadcastLobby();mpUI();}return;}
   if(d.t==='st'){MP.rs[c.peer]=d.s;MP.view[c.peer]=d.s;return;}
@@ -4102,7 +4102,7 @@ function mpLeave(){if(MP.host&&MP.on)mpSendAll({t:'back'});mpCloseAll();mpStatus
 // ---------- 開打 ----------
 function mpStartLocal(n,bi,re){if(!re)MP.graves=[];else for(const gr of MP.graves||[]){if(gr.oy!=null)gr.y=gr.oy;gr.vy=0;} /* 重新開始：墳墓回到原本的位置 */MP.spec=null;MP.rex=null;MP.wipeT=0;MP.allDeadT=0;MP.aggro={};MP.total={};MP.open=false;MP.fadeDone=false;MP.hitIds=new Set();MP.vshots=[];MP.robj={};MP.lastAi=-1;MP.tgt='h';startFight(bi||0);
   P.pal=mpPal(MP.me.slot);P.palSlot=MP.me.slot;P.male=MP.me.male;P.rage=0;
-  if(MP.host){const base=boss&&boss.kind==='katavina'?25000:13500,hp=Math.round(base*Math.max(1,n)*(GAMEDIFF===1?1.5:1)); /* 每多一位玩家，Boss 血量多一倍（基礎血量 × 人數；卡塔薇娜基礎 20000） */boss.mhp=boss.hp=boss.ghostHp=hp;}
+  if(MP.host){const base=boss&&boss.kind==='katavina'?25000:12000,hp=Math.round(base*Math.max(1,n)*(GAMEDIFF===1?1.5:1)); /* 每多一位玩家，Boss 血量多一倍（基礎血量 × 人數；卡塔薇娜基礎 20000） */boss.mhp=boss.hp=boss.ghostHp=hp;}
   mpUI();}
 function mpPStats(){if(!MP.host)return MP.ps||{};const o={h:[stats.parries|0,stats.deaths|0]};for(const id in MP.rs){const r=MP.rs[id];if(r)o[id]=[r.pa|0,r.de|0];}return o;} /* 多人：每位玩家的格擋、死亡次數（房主彙整後廣播） */
 function mpPCmds(){if(!MP.host)return MP.pc||{};const o={h:winCmds()};for(const id in MP.rs){const r=MP.rs[id];if(r&&r.cm)o[id]=r.cm;}return o;} /* 多人：每位玩家用過的指令（房主彙整後廣播，所有人都看得到） */
