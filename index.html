@@ -1048,7 +1048,7 @@ let curCol='#ff2e4a';
 function shot(x,y,a,spd,o={}){const s=spd*D.spd;
   const b={x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:o.r||3,col:o.col||curCol,t:0,life:o.life||600,acc:o.acc||1,turn:o.turn||0,grav:o.grav||0,
     shape:o.shape||'orb',dmg:o.dmg||22,maxV:o.maxV||99,ang:a,delay:o.delay||0};bullets.push(b);
-  if(GAMEDIFF===2&&!o.__tw)XDQ.push({b,x,y,vx:b.vx,vy:b.vy,a,life:b.life,f:frameN+10,s:null}); /* 極難：同一發在 10 幀後從同一點再射一次（間隔減半、密度兩倍） */
+  if(GAMEDIFF===2&&!o.__tw){if(b.shape==='qi'&&boss&&P)XDQ.push({qi:true,src:boss,tp:P,off:a-Math.atan2(P.y+P.h/2-y,P.x+P.w/2-x),spd,o,f:frameN+12}); /* 極難劍氣：Boss 再多揮一次（從當下位置重新瞄準） */else XDQ.push({b,x,y,vx:b.vx,vy:b.vy,a,life:b.life,f:frameN+10,s:null});} /* 極難：同一發在 10 幀後從同一點再射一次（間隔減半、密度兩倍） */
   // 困難：彈幕密集度兩倍（每發旁邊多一發，劍氣與地波除外）
   if(GAMEDIFF===1&&!o.__tw&&b.shape!=='qi'&&b.shape!=='wave'){shotTw=-shotTw;shot(x,y,a+.085*shotTw,spd,Object.assign({},o,{__tw:1}));}
   return b;}
@@ -1257,12 +1257,12 @@ function runLastStand(b){const t=b.lt++;b.fly=true;b.flying=true;
 function mRiftFast(b,t){ /* 新招：裂空斬 5～8 道，速度＝最終謝幕最快時（每 3 幀一道、預警 18 幀） */
   if(t===0){b.rfN=5+(Math.random()*4|0);b.rfL=[];b.fly=true;b.flying=true;b.sheathed=false;b.weapon='katana';SFX.glint&&SFX.glint();}
   const c=pc();b.x=lerp(b.x,clamp(c.x+(b.x<c.x?-160:160),40,WW-40),.08);b.y=lerp(b.y,Math.min(GROUND,c.y-100),.08);b.face=Math.sign(c.x-b.x)||1;
-  const i=(t-24)/3;if(t>=24&&Number.isInteger(i)&&i<b.rfN){const oa=rnd(0,TAU),orr=rnd(50,170),ox=b.x+Math.cos(oa)*orr,oy=b.y-24+Math.sin(oa)*orr,a=Math.atan2(c.y-oy,c.x-ox);b.rfL.push({at:t+18,a,x:ox,y:oy});
+  const i=(t-24)/9;if(t>=24&&Number.isInteger(i)&&i<b.rfN){ /* 每道間隔 0.15 秒 */const oa=rnd(0,TAU),orr=rnd(50,170),ox=b.x+Math.cos(oa)*orr,oy=b.y-24+Math.sin(oa)*orr,a=Math.atan2(c.y-oy,c.x-ox);b.rfL.push({at:t+18,a,x:ox,y:oy});
     b.sw={cd:COMBO[i%3]};b.swLA=toLA(b,a)-(i%2?2.2:-1.4);fx.push({type:'tline',x:ox-Math.cos(a)*1500,y:oy-Math.sin(a)*1500,x2:ox+Math.cos(a)*1500,y2:oy+Math.sin(a)*1500,life:18,max:18,col:'#ff2e4a'});part(ox,oy,4,'#ffffff',1.5,14);if(i===0)SFX.peril();}
   for(const l of b.rfL)if(t===l.at){strike({kind:'line',x:l.x,y:l.y,a:l.a,r:11,life:5,parry:false,dmg:52,b});fx.push({type:'rift',x:l.x,y:l.y,a:l.a,life:18,max:18});riftSparks(l.x,l.y,l.a,10);
     b.swLA=toLA(b,l.a)+1.3;b.bladeL=70;mGhost(b,'#ffffff');SFX.riftLite?SFX.riftLite():SFX.rift();addShake(3);flash=Math.max(flash,.06);flashCol='255,255,255';l.done=true;}
   b.rfL=b.rfL.filter(l=>!l.done);
-  if(t>=24+b.rfN*3+18+24){b.sw=null;b.fly=false;b.flying=false;return true;}return false;}
+  if(t>=24+b.rfN*9+18+24){b.sw=null;b.fly=false;b.flying=false;return true;}return false;}
 let MCL=null; /* 第四階段起的分身（第一階段招式；可被打、不會消失；追 Boss 的非仇恨對象） */
 function mclStep(){const b=boss;
   if(!(GAMEDIFF===2&&b&&b.kind==='mirror'&&!b.dead&&(b.phase|0)>=3&&state==='fight')){if(MCL&&(!b||b.dead||state!=='fight'||b.kind!=='mirror'))MCL=null;return;}
@@ -1279,7 +1279,9 @@ function mclHit(c,a,b2){c.hurtF=10;const hb=bossHurt(c);part((hb.a[0]+hb.b[0])/2
 function drawMcl(){const c=MCL;if(!c||!boss||boss.kind!=='mirror')return;if(MP.on&&!MP.host){if(c._tx!=null){c.x+=(c._tx-c.x)*.4;c.y+=(c._ty-c.y)*.4;}if(c.hurtF>0)c.hurtF--;}
   const sB=boss;boss=c;try{drawBoss();}catch(e){console.error(e);}finally{boss=sB;}}
 let XDQ=[];function xdFlush(){if(!XDQ.length)return;if(!boss||boss.dead||state!=='fight'){XDQ=[];return;}const keep=[];
-  for(const q of XDQ){if(!q.s){const s=q.b,c={};let ok=true;for(const k in s){const v=s[k];if(v&&typeof v==='object'){if(Array.isArray(v))continue;ok=false;break;}c[k]=v;}if(!ok)continue;delete c.__i;q.s=c;} /* 有附加物件（環繞軌道等）的子彈不複製 */
+  for(const q of XDQ){if(q.qi){if(frameN<q.f){keep.push(q);continue;}const bb=q.src;if(!bb||bb.dead||(bb!==boss&&bb!==MCL))continue;const ox=bb.x,oy=bb.y-24,tp=q.tp,na=Math.atan2(tp.y+tp.h/2-oy,tp.x+tp.w/2-ox)+q.off;shot(ox,oy,na,q.spd,Object.assign({},q.o,{__tw:1}));
+      if(bb._xsf!==frameN){bb._xsf=frameN;bb._xs=(bb._xs||0)+1;bb.weapon='katana';bb.sheathed=false;bb.sw={cd:COMBO[bb._xs%3]};bb.swLA=toLA(bb,na)+(bb._xs%2?1.3:-1.6);bb.bladeL=70;SFX.qi&&SFX.qi();SFX.swing&&SFX.swing(true);}continue;}
+    if(!q.s){const s=q.b,c={};let ok=true;for(const k in s){const v=s[k];if(v&&typeof v==='object'){if(Array.isArray(v))continue;ok=false;break;}c[k]=v;}if(!ok)continue;delete c.__i;q.s=c;} /* 有附加物件（環繞軌道等）的子彈不複製 */
     if(frameN<q.f){keep.push(q);continue;}const c=Object.assign({},q.s);c.x=q.x;c.y=q.y;c.vx=q.vx;c.vy=q.vy;c.ang=q.a;c.t=0;c.life=q.life;bullets.push(c);}XDQ=keep;}
 function mXRiftStep(b){if(!b.xRift||!b.xRift.length)return;if(b.dead){b.xRift=null;return;} /* 極難：裂空斬每道多一道，延遲 0.5 秒、對準玩家當下位置、角度隨機 */
   for(const q of b.xRift){q.t++;if(q.t===0){const c=pc();q.a=rnd(0,Math.PI);q.x=c.x;q.y=c.y;fx.push({type:'tline',x:q.x-Math.cos(q.a)*1500,y:q.y-Math.sin(q.a)*1500,x2:q.x+Math.cos(q.a)*1500,y2:q.y+Math.sin(q.a)*1500,life:26,max:26,col:'#ff2e4a'});SFX.peril();}
@@ -2537,7 +2539,7 @@ const BOSSES=[makeMirror,makeKatavina];
 function startFight(i){
   chat.all=[];chat.log=[];chat.sc=0; /* 新的一場：聊天記錄重新開始 */
   KV_DEBRIS=[];KV_PL.cd=0;KV_PL.fx=null;KV_PL.suck=null;KV_CP_WRECK.length=0;KV_CH_DROP.length=0;KV_GLASS=[];KV_FB=null;KV_MOBS=[];KV_GIBS=[];KV_SHARDS=[];KV_SPOTA=0;KV_SPK=[];KV_SPKA=0;KV_SPKW=0;KV_VIG=.10;KV_DARK=0;KV_PDK=0;KV_PBG=0;KV_MOBOL=0;KV_RK=kvRkNew();KV_CBF={sc:[],ch:[]};KV_CORPSE=[];KV_FALL=[];if(boss)boss.starFx=null;{const pal=BOSSES[i]===makeKatavina;WW=pal?2700:3600;WH=pal?2700:1200;GROUND=pal?2600:1100;PLATS.length=0;PLATS.push(...(pal?kvGenPlats():PLATS_ALL.map(q=>Object.assign({},q))));} /* 宮殿地圖：正方形 2700×2700 */ // 宮殿地圖：寬 2700（原 1800 的 1.5 倍）、自己的平台
-  D=DIFFS[diffI];bossSel=i;P=newPlayer();boss=BOSSES[i]();curCol=boss.col;if(GAMEDIFF>=1){boss.mhp=boss.hp=Math.round(boss.mhp*(GAMEDIFF===2?2:1.5));boss.ghostHp=boss.hp;}if(GAMEDIFF===2)boss.xStart=boss.kind==='mirror'?2:boss.kind==='katavina'?1:null;if(GAMEDIFF===2&&boss.kind==='mirror'&&boss.phases[3])boss.phases[3].splice(4,0,mRiftFast); /* 極難第四階段：多一招快速裂空斬 */MCL=null; /* 極難：血量 +100%；鏡中銀影直接第三階段、卡塔薇娜直接第二階段（血量不減） */XDQ=[];
+  D=DIFFS[diffI];bossSel=i;P=newPlayer();boss=BOSSES[i]();curCol=boss.col;if(GAMEDIFF>=1){boss.mhp=boss.hp=Math.round(boss.mhp*(GAMEDIFF===2?2:1.5));boss.ghostHp=boss.hp;}if(GAMEDIFF===2)boss.xStart=boss.kind==='mirror'?2:boss.kind==='katavina'?1:null;if(GAMEDIFF===2&&boss.kind==='mirror'&&boss.phases[3]){const L=boss.phases[3];L.splice(4,0,mRiftFast);L.splice(9,0,mRiftFast);L.splice(14,0,mRiftFast);L.push(mRiftFast);} /* 極難第四階段：多一招快速裂空斬 */MCL=null; /* 極難：血量 +100%；鏡中銀影直接第三階段、卡塔薇娜直接第二階段（血量不減） */XDQ=[];
   bullets=[];lasers=[];strikes=[];aoes=[];parts=[];fx=[];pops=[];ghosts=[];trail=[];weather=[];pqi=[];pshots=[];PWP=[];PWT=[];if(typeof CLONES!=='undefined'){CLONES=[];CLONE_POOL=[];}if(typeof SNH!=='undefined')SNH=[];crescents=[];scars=[];camK=0;execT=0;
   for(const c of snapPool())c.used=false;
   stats={time:0,parries:0,hits:0,pots:0,books:0,deaths:0};state='fight';introT=0;endT=0;paused=false;bgL=0;
@@ -2938,7 +2940,7 @@ function drawBoss(){
     if(hw_){const HH=b.haloSH||[],hs=b.haloS===undefined?1:b.haloS;for(let a=0;a<HH.length-1;a++)if(Math.abs(HH[a]-hs)>.005)kvHalo(b,HH[a],.35*Math.pow((a+1)/HH.length,1.5));kvHalo(b,hs,1);} // 傳送：光環縮成一點／從一點放大＋長拖尾（畫在混沌前面、地板後面）
     b._extHalo=false;g.restore();return;}if(!b||(b.hidden&&!b.dancers)||b.dormant)return;if(b.dead&&b.deathT>420)return;
   b.rx=Math.round(b.x);b.ry=Math.round(b.y);
-  const hp2=b.hard&&b.phase>=2&&!b.dead,hp3=b.hard&&b.phase>=3&&!b.dead;const rig=hp3?mRig3:hp2?mRig2:mRig,aura=hp3?'#d8d8e4':'#8a70ff';
+  const hp2=b.hard&&(b.phase>=2||b.isCl)&&!b.dead,hp3=b.hard&&(b.phase>=3||b.isCl)&&!b.dead; /* 極難分身：白色外觀 */const rig=hp3?mRig3:hp2?mRig2:mRig,aura=hp3?'#d8d8e4':'#8a70ff';
   if(frameN%3===0)parts.push({x:b.x+rnd(-8,8),y:b.y-rnd(0,36),vx:rnd(-.2,.2),vy:-rnd(.3,.9),life:40,max:40,col:b.phase>=1?aura:'#000000',size:b.phase>=1?1:2});
   gg.globalAlpha=.2+.08*Math.sin(frameN/12)+b.phase*.1;const sg=soft(40,'rgba(120,90,255,.5)');gg.drawImage(sg,b.rx-40,b.ry-58);gg.globalAlpha=1;
   if(b.fly||b.flying){const fl=Math.sin(frameN/3)*3;for(let i=0;i<5;i++){const wx=b.rx-b.face*(4+i*2.7),wy=b.ry-25-i*1.8+fl*(i/4);gg.fillStyle='rgba(180,160,255,.85)';gg.fillRect(wx-(b.face>0?3:0),wy,3,1);g.fillStyle='#2a2440';g.fillRect(wx,wy,2,5-i);}}
