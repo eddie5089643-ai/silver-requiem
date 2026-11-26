@@ -3048,6 +3048,12 @@ const VOIDSTARS=(()=>{const c=mk(256,256),x=c.getContext('2d');x.fillStyle='#000
   for(let i=0;i<520;i++){const b=Math.random();x.fillStyle=b>.93?'#ffffff':b>.7?'rgba(230,235,255,.8)':'rgba(200,205,255,.45)';const sz=b>.96?2:1;x.fillRect(Math.floor(rnd(0,256)),Math.floor(rnd(0,256)),sz,sz);}
   for(let i=0;i<6;i++){const sx=Math.floor(rnd(4,252)),sy=Math.floor(rnd(4,252));x.fillStyle='rgba(255,255,255,.55)';x.fillRect(sx-2,sy,5,1);x.fillRect(sx,sy-2,1,5);x.fillStyle='#ffffff';x.fillRect(sx,sy,1,1);}
   return c;})();let voidPat=null;
+function riftWarpPost(){let snap=false;const wt=g.getTransform(); /* 裂空斬：裂口外側邊緣往內扭曲（同一幀所有裂口共用一張快照，重疊處不會疊加） */
+  for(const f of fx){if(f.type!=='rift'||f.short)continue;const k=f.life/f.max,k2=1-k,vw=k2<.1?k2/.1*14:14*Math.max(0,1-(k2-.1)/.8),e=vw/2,A=(4+10*Math.min(1,k2*4))*k;if(A<.4)continue;
+    const cx=wt.a*f.x+wt.c*f.y+wt.e,cy=wt.b*f.x+wt.d*f.y+wt.f,sc=Math.hypot(wt.a,wt.b),E0=e*sc,BW=40*sc,L=Math.hypot(W,H)*1.2,N=5;
+    if(!snap){kvSnapBuf();snap=true;}
+    for(const sd of [-1,1])for(let j=0;j<N;j++){const r0=E0+j*BW/N,r1=r0+BW/N+1,rm=(r0+r1)/2,u=(j+.5)/N,d=A*sc*Math.sin(u*Math.PI)*Math.cos(u*Math.PI*.5),kk=rm/(rm+d);
+      g.save();g.setTransform(1,0,0,1,0,0);g.translate(cx,cy);g.rotate(f.a);g.beginPath();g.rect(-L,sd>0?r0:-r1,L*2,r1-r0);g.clip();g.scale(1,kk);g.rotate(-f.a);g.translate(-cx,-cy);g.drawImage(KV_SNAP,0,0);g.restore();}}}
 function drawFX(){riftCores=[];riftWT=g.getTransform();
   for(const f of fx){const k=f.life/f.max;
     if(f.type==='wisp'){const pr=1-f.life/f.max,gr=Math.sin(Math.min(1,pr*1.2)*Math.PI),dd=f.len*pr*.8,x=f.x+Math.cos(f.a)*dd,y=f.y+Math.sin(f.a)*dd-pr*6;
@@ -3110,7 +3116,7 @@ function render(){
     const sx=shake>0?rnd(-shake,shake):0,sy=shake>0?rnd(-shake,shake):0;shake*=.86;if(shake<.3)shake=0;
     camK*=.8;g.save();gg.save();calcView();g.imageSmoothingEnabled=false;gg.imageSmoothingEnabled=false;
     if(VZ!==1){g.scale(VZ,VZ);gg.scale(VZ,VZ);}KV_CAM=[Math.round(-VX0+sx-camK),Math.round(-VY0+sy)];g.translate(Math.round(-VX0+sx-camK),Math.round(-VY0+sy));gg.translate(Math.round(-VX0+sx-camK),Math.round(-VY0+sy));
-    drawWorld();kvPullPost();kvCbWarpPost();snWarpPost();kvPilPost();kvRockPost();drawScars();drawLastRing();drawMirror();drawAoes();drawLasers();drawGhosts();kvDarkOverlay();kvPilDarkDraw();kvCirclesDraw();kvChainDraw();if(typeof wpnHolePre==='function')wpnHolePre();drawBoss();drawMcl();kvEyeDots();kvPrEnhDraw();kvCpDraw();kvCpWreckDraw(false);kvCpWreckDraw(true);kvMobsDraw();kvMobsDrawTop();snHsDraw();kvP3FxDraw();kvRockDraw();kvCbFxDraw();kvHandCirclesDraw();kvPullDraw();kvPillarsDraw();kvPrOutDraw();wpnDraw();kvBeamDraw();if(!(boss&&boss.tl&&boss.tl.mode==='alone')&&!kvStarOn())kvPrinDraw();kvBHDraw();mpDrawRemotes();if(KV_DARK>.01)g.filter=`brightness(${(1-KV_DARK).toFixed(3)})`;kvChairDraw();drawPlayer();g.filter='none';snSmokeDraw();kvArenaDraw();kvStarCover();if(kvStarOn()&&!(boss.tl&&boss.tl.mode==='alone'))kvPrinDraw(); /* 星空期間：皇女法陣畫在星空上面 */kvCosmosDraw();drawTrail();drawBullets();drawParts();drawFX();drawLock();
+    drawWorld();kvPullPost();kvCbWarpPost();snWarpPost();kvPilPost();kvRockPost();drawScars();drawLastRing();drawMirror();drawAoes();drawLasers();drawGhosts();kvDarkOverlay();kvPilDarkDraw();kvCirclesDraw();kvChainDraw();if(typeof wpnHolePre==='function')wpnHolePre();drawBoss();drawMcl();kvEyeDots();kvPrEnhDraw();kvCpDraw();kvCpWreckDraw(false);kvCpWreckDraw(true);kvMobsDraw();kvMobsDrawTop();snHsDraw();kvP3FxDraw();kvRockDraw();kvCbFxDraw();kvHandCirclesDraw();kvPullDraw();kvPillarsDraw();kvPrOutDraw();wpnDraw();kvBeamDraw();if(!(boss&&boss.tl&&boss.tl.mode==='alone')&&!kvStarOn())kvPrinDraw();kvBHDraw();mpDrawRemotes();if(KV_DARK>.01)g.filter=`brightness(${(1-KV_DARK).toFixed(3)})`;kvChairDraw();drawPlayer();g.filter='none';snSmokeDraw();kvArenaDraw();kvStarCover();if(kvStarOn()&&!(boss.tl&&boss.tl.mode==='alone'))kvPrinDraw(); /* 星空期間：皇女法陣畫在星空上面 */kvCosmosDraw();drawTrail();drawBullets();drawParts();riftWarpPost();drawFX();drawLock();
     g.restore();gg.restore();
     kvBHPost();kvRingPost();kvShieldPost();kvStarEdgePost();kvSuckPost();kvBHTop();kvContrast();kvPrSpot();kvArFlamesTop();kvPrTop();kvSwordsTop();kvLightFx(); // 黑洞周圍扭曲＋扭曲環（畫在整個場景上）
     // 暗角（越靠近 Boss 越壓迫；困難三階有心跳脈動）
