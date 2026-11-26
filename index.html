@@ -1275,7 +1275,7 @@ let MCL=null; /* 第四階段起的分身（第一階段招式；可被打、不
 function mclStep(){const b=boss;
   if(!(GAMEDIFF===2&&b&&b.kind==='mirror'&&!b.dead&&(b.phase|0)>=3&&state==='fight')){if(MCL&&(!b||b.dead||state!=='fight'||b.kind!=='mirror'))MCL=null;return;}
   if(MP.on&&!MP.host)return;
-  if(!MCL){const c=makeMirror();c.isCl=true;c.phase=0;c.phaseAt=[];c.mhp=c.hp=c.ghostHp=1e9;c.x=clamp(b.x+(Math.random()<.5?-220:220),40,WW-40);c.y=GROUND;c.pause=60;c.hidden=false;MCL=c;part(c.x,c.y-24,30,'#000000',3,30,2);ring(c.x,c.y-24,'#8a70ff',6,30);SFX.glint&&SFX.glint();}
+  if(!MCL){const c=makeMirror();c.isCl=true;c.phase=0;c.phaseAt=[];c.phases[0]=c.phases[0].filter(fn=>fn.name!=='counter'); /* 分身不用見切（防禦）架勢 */c.mhp=c.hp=c.ghostHp=1e9;c.x=clamp(b.x+(Math.random()<.5?-220:220),40,WW-40);c.y=GROUND;c.pause=60;c.hidden=false;MCL=c;part(c.x,c.y-24,30,'#000000',3,30,2);ring(c.x,c.y-24,'#8a70ff',6,30);SFX.glint&&SFX.glint();}
   const c=MCL;let px=null;
   if(MP.on&&MP.host){const RP=MP.realP||P,ids=['h'].concat(Object.keys(MP.rs||{})).filter(id=>mpAlive(id)),pos=id=>id==='h'?{x:RP.x,y:RP.y}:MP.rs[id],dd=id=>Math.hypot(pos(id).x-c.x,pos(id).y-c.y);
     const o=ids.filter(id=>id!==MP.tgt);let tg=o.length?o.reduce((a,id)=>dd(id)<dd(a)?id:a,o[0]):(MP.tgt||'h');c.tgt=tg; /* 只有一個人時就追那個人 */
@@ -2547,7 +2547,7 @@ const BOSSES=[makeMirror,makeKatavina];
 function startFight(i){
   chat.all=[];chat.log=[];chat.sc=0; /* 新的一場：聊天記錄重新開始 */
   KV_DEBRIS=[];KV_PL.cd=0;KV_PL.fx=null;KV_PL.suck=null;KV_CP_WRECK.length=0;KV_CH_DROP.length=0;KV_GLASS=[];KV_FB=null;KV_MOBS=[];KV_GIBS=[];KV_SHARDS=[];KV_SPOTA=0;KV_SPK=[];KV_SPKA=0;KV_SPKW=0;KV_VIG=.10;KV_DARK=0;KV_PDK=0;KV_PBG=0;KV_MOBOL=0;KV_RK=kvRkNew();KV_CBF={sc:[],ch:[]};KV_CORPSE=[];KV_FALL=[];if(boss)boss.starFx=null;{const pal=BOSSES[i]===makeKatavina;WW=pal?2700:3600;WH=pal?2700:1200;GROUND=pal?2600:1100;PLATS.length=0;PLATS.push(...(pal?kvGenPlats():PLATS_ALL.map(q=>Object.assign({},q))));} /* 宮殿地圖：正方形 2700×2700 */ // 宮殿地圖：寬 2700（原 1800 的 1.5 倍）、自己的平台
-  D=DIFFS[diffI];bossSel=i;P=newPlayer();boss=BOSSES[i]();curCol=boss.col;if(GAMEDIFF>=1){boss.mhp=boss.hp=Math.round(boss.mhp*(GAMEDIFF===2?2:1.5));boss.ghostHp=boss.hp;}if(GAMEDIFF===2)boss.xStart=boss.kind==='mirror'?2:boss.kind==='katavina'?1:null;if(GAMEDIFF===2&&boss.kind==='mirror'&&boss.phases[3]){const L=boss.phases[3];L.splice(4,0,mRiftFast);L.splice(9,0,mRiftFast);L.splice(14,0,mRiftFast);L.push(mRiftFast);L.splice(7,0,mRiftRing);} /* 極難第四階段：多一招快速裂空斬 */MCL=null; /* 極難：血量 +100%；鏡中銀影直接第三階段、卡塔薇娜直接第二階段（血量不減） */XDQ=[];
+  D=DIFFS[diffI];bossSel=i;P=newPlayer();boss=BOSSES[i]();curCol=boss.col;if(GAMEDIFF>=1){boss.mhp=boss.hp=Math.round(boss.mhp*(GAMEDIFF===2?2:1.5));boss.ghostHp=boss.hp;}if(GAMEDIFF===2)boss.xStart=boss.kind==='mirror'?2:boss.kind==='katavina'?1:null;if(GAMEDIFF===2){if(boss.kind==='mirror')boss.phaseAt=[1,1,.7];if(boss.kind==='katavina')boss.phaseAt=[1,.65];} /* 極難血量分線：鏡中銀影 第三階段 30%／第四 70%；卡塔薇娜 第二 35%／第三 65% */if(GAMEDIFF===2&&boss.kind==='mirror'&&boss.phases[3]){const L=boss.phases[3];L.splice(4,0,mRiftFast);L.splice(9,0,mRiftFast);L.splice(14,0,mRiftFast);L.push(mRiftFast);L.splice(7,0,mRiftRing);} /* 極難第四階段：多一招快速裂空斬 */MCL=null; /* 極難：血量 +100%；鏡中銀影直接第三階段、卡塔薇娜直接第二階段（血量不減） */XDQ=[];
   bullets=[];lasers=[];strikes=[];aoes=[];parts=[];fx=[];pops=[];ghosts=[];trail=[];weather=[];pqi=[];pshots=[];PWP=[];PWT=[];if(typeof CLONES!=='undefined'){CLONES=[];CLONE_POOL=[];}if(typeof SNH!=='undefined')SNH=[];crescents=[];scars=[];camK=0;execT=0;
   for(const c of snapPool())c.used=false;
   stats={time:0,parries:0,hits:0,pots:0,books:0,deaths:0};state='fight';introT=0;endT=0;paused=false;bgL=0;
@@ -2965,6 +2965,8 @@ function drawBoss(){
     if(frameN%2===0){const q=b.hair[(Math.random()*b.hair.length)|0];parts.push({x:q.x,y:q.y,vx:rnd(-.3,.3),vy:-rnd(.2,.8),life:24,max:24,col:'#ffffff',size:1});}}
   if(b.ghostT>0)ghosts.push({snap:snapRig(out,'#000000'),x:b.rx,y:b.ry,ox:rig.ox,oy:rig.oy,life:12,max:12});
   drawRigAt(rig,out,b.rx,b.ry);
+  if(b.isCl){const ws=snapRig(out,'#ffffff');g.drawImage(ws,b.rx-rig.ox,b.ry-rig.oy);gg.globalAlpha=.55;gg.drawImage(ws,b.rx-rig.ox,b.ry-rig.oy);gg.globalAlpha=1; /* 極難分身：白色剪影＋白光 */
+    const mv=b._ghx==null?0:Math.hypot(b.rx-b._ghx,b.ry-b._ghy);b._ghx=b.rx;b._ghy=b.ry;if(mv>.6&&frameN%2===0)ghosts.push({snap:snapRig(out,'#ffffff'),x:b.rx,y:b.ry,ox:rig.ox,oy:rig.oy,life:14,max:14,a:.35});} /* 移動時白色殘影 */
   if(b.hurtF>0){g.globalAlpha=b.hurtF/18;g.drawImage(snapRig(out,'#ffffff'),b.rx-rig.ox,b.ry-rig.oy);g.globalAlpha=1;snapPool().forEach(c=>{if(c.used&&!ghosts.some(q=>q.snap===c))c.used=false;});}
   const hx=b.rx+b.handL[0]*b.face,hy=b.ry+b.handL[1],wa=toW(b,b.laNow),BL=b.bladeW||0;
   b.tipX=hx+Math.cos(wa)*BL;b.tipY=hy+Math.sin(wa)*BL;
