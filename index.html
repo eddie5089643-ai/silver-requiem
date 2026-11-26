@@ -1048,11 +1048,12 @@ let curCol='#ff2e4a';
 function shot(x,y,a,spd,o={}){const s=spd*D.spd;
   const b={x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:o.r||3,col:o.col||curCol,t:0,life:o.life||600,acc:o.acc||1,turn:o.turn||0,grav:o.grav||0,
     shape:o.shape||'orb',dmg:o.dmg||22,maxV:o.maxV||99,ang:a,delay:o.delay||0};bullets.push(b);
+  if(GAMEDIFF===2&&!o.__tw)XDQ.push({b,x,y,vx:b.vx,vy:b.vy,a,life:b.life,f:frameN+10,s:null}); /* 極難：同一發在 10 幀後從同一點再射一次（間隔減半、密度兩倍） */
   // 困難：彈幕密集度兩倍（每發旁邊多一發，劍氣與地波除外）
   if(GAMEDIFF===1&&!o.__tw&&b.shape!=='qi'&&b.shape!=='wave'){shotTw=-shotTw;shot(x,y,a+.085*shotTw,spd,Object.assign({},o,{__tw:1}));}
   return b;}
 let GAMEDIFF=0,shotTw=1;
-function ringShot(x,y,n,spd,off,o){for(let i=0;i<n;i++)shot(x,y,off+i*TAU/n,spd,o);}
+function ringShot(x,y,n,spd,off,o){if(GAMEDIFF===2&&!(o&&o.__tw)){n*=2;o=Object.assign({},o,{__tw:1});} /* 極難：環狀彈幕數量兩倍（平均分佈，不是貼在旁邊） */for(let i=0;i<n;i++)shot(x,y,off+i*TAU/n,spd,o);}
 function spread(x,y,a,n,sp,spd,o){for(let i=0;i<n;i++)shot(x,y,a+(n===1?0:(i/(n-1)-.5)*sp),spd,o);}
 function laser(o){const l=Object.assign({x:0,y:0,a:0,len:1600,w:12,tele:50,life:20,t:0,dmg:40,col:curCol,both:true},o);l.tele=Math.round(l.tele/Math.sqrt(D.spd));lasers.push(l);return l;}
 function part(x,y,n,col,spd=2,life=30,size=1,grav=0){for(let i=0;i<n;i++){const a=rnd(0,TAU),s=rnd(.2,1)*spd;parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:life*rnd(.6,1),max:life,col,size,grav});}}
@@ -1252,7 +1253,14 @@ function runLastStand(b){const t=b.lt++;b.fly=true;b.flying=true;
     b.swLA=toLA(b,l.a)+(b.lsw%2?1.3:-1.6);b.bladeL=70;if(!fast||b.lsw%2===0)mGhost(b,'#ffffff');if(!fast)SFX.rift();else SFX.riftLite();addShake(fast?3:7);flash=Math.max(flash,fast?.06:.18);flashCol='255,255,255';l.done=true;}
   b.lns=b.lns.filter(l=>!l.done);}
 
-function enterPhase(b,ph){
+let XDQ=[];function xdFlush(){if(!XDQ.length)return;if(!boss||boss.dead||state!=='fight'){XDQ=[];return;}const keep=[];
+  for(const q of XDQ){if(!q.s){const s=q.b,c={};let ok=true;for(const k in s){const v=s[k];if(v&&typeof v==='object'){if(Array.isArray(v))continue;ok=false;break;}c[k]=v;}if(!ok)continue;delete c.__i;q.s=c;} /* 有附加物件（環繞軌道等）的子彈不複製 */
+    if(frameN<q.f){keep.push(q);continue;}const c=Object.assign({},q.s);c.x=q.x;c.y=q.y;c.vx=q.vx;c.vy=q.vy;c.ang=q.a;c.t=0;c.life=q.life;bullets.push(c);}XDQ=keep;}
+function mXRiftStep(b){if(!b.xRift||!b.xRift.length)return;if(b.dead){b.xRift=null;return;} /* 極難：裂空斬每道多一道，延遲 0.5 秒、對準玩家當下位置、角度隨機 */
+  for(const q of b.xRift){q.t++;if(q.t===0){const c=pc();q.a=rnd(0,Math.PI);q.x=c.x;q.y=c.y;fx.push({type:'tline',x:q.x-Math.cos(q.a)*1500,y:q.y-Math.sin(q.a)*1500,x2:q.x+Math.cos(q.a)*1500,y2:q.y+Math.sin(q.a)*1500,life:26,max:26,col:'#ff2e4a'});SFX.peril();}
+    if(q.t===26){strike({kind:'line',x:q.x,y:q.y,a:q.a,r:11,life:6,parry:false,dmg:52,b});riftSparks(q.x,q.y,q.a,40);fx.push({type:'rift',x:q.x,y:q.y,a:q.a,life:48,max:48});SFX.rift();addShake(9);}}
+  b.xRift=b.xRift.filter(q=>q.t<26);}
+function enterPhase(b,ph){XDQ=[];b.xRift=null;
   b.phase=ph;b.ai=0;b.t=0;b.trans=140;b.mstepOn=false;b.msD=null;b.weapon='katana';b.twins=null;b.dancers=null;b.storm=null;b.inv=140;b.dashing=false;b.hidden=false;b.sheath=false;b.float=1;b.hold=0;
   for(const q of bullets)part(q.x,q.y,2,q.col,1,20);bullets=[];lasers=[];strikes=[];aoes=[];
   flash=.9;addShake(12);SFX.roar();setMusic(b.song,ph+(b.off||0));if(b.hard&&ph===3){fx.push({type:'rift',x:b.x,y:b.y-20,a:0,life:60,max:60});fx.push({type:'rift',x:b.x,y:b.y-20,a:Math.PI/2,life:60,max:60});}
@@ -1260,6 +1268,8 @@ function enterPhase(b,ph){
 function runBoss(b){
   if(b.kind==='katavina'&&b.kvWait){kvWaitStep(b);return;} /* 開戰前：只有紫光球 */
   if(b.kind==='katavina'&&b.dead){kvDeathStep(b);return;} /* 死亡動畫 */
+  if(b.xStart!=null&&!b.dead){if((b.phase|0)<b.xStart){if(b.kind==='katavina'){b.mobInit=true;b.shield=0;}enterPhase(b,b.xStart);}b.xStart=null;} /* 極難開局：跳到指定階段後血量補回全滿 */
+  if(b.kind==='mirror')mXRiftStep(b);
   if(b.kind==='katavina'&&b.kvStun&&!b.dead&&kvStunStep(b))return;
   if(b.kind==='katavina'){kvPrinStep(b);kvArenaStep(b);kvMobsStep(b);if(b.trans>0&&b.warpFx){b.warpFx=null;b.warpHist=[];b.warpS=1;b.warpSH=[];b.haloS=1;b.haloSH=[];b.hidden=false;}if(b.warpFx){(b.warpHist=b.warpHist||[]).push({mode:b.warpFx.mode,t:b.warpFx.t});if(b.warpHist.length>6)b.warpHist.shift();}b.haloV=(b.phase|0)>=2?.02:.006;b.haloT=(b.phase|0)>=1?(b.haloT||0)+1:0;b.fr+=.13;b.haloA+=b.haloV;b.track=KV_TRACK0+Math.min(2,b.phase|0);if(b.p3done||b.p3vis)b.p3t2=(b.p3t2||0)+1;kvDebrisStep();if(b.dead&&(b.tl||b.closeUp)){b.tl=null;b.closeUp=false;b.waveRing=null;b.barr=null;b.swd=null;}if(b.beam&&((b.phase|0)!==1||b.dead||b.trans>0))b.beam=null;if((b.phase|0)>=2&&!b.dead)kvClockTick(b);if(KV_PDK>0)KV_PDK=Math.max(0,KV_PDK-.3/180);if(KV_PBG>0)KV_PBG--;kvP3Extra(b);kvRockStep(b);if(b.pil){if(b.dead)b.pil=null;else kvPillarsStep(b);}
   if((b.phase|0)>=2&&b.p3done&&!b.dead&&kvTimeline(b)){b.anim++;if(b.hurtF>0)b.hurtF--;if(b.inv>0)b.inv--;b.ghostHp=Math.max(b.hp,b.ghostHp-b.mhp*.004);return;}
@@ -1457,7 +1467,7 @@ function makeMirror(){
     if(k===0){const c=pc(),base=rnd(0,Math.PI);b.rifts=[];
       for(let j=0;j<(cross?2:1);j++){const a=base+j*Math.PI/2+rnd(-.15,.15),gold=!cross&&i%3===2;b.rifts.push({x:c.x,y:c.y,a,gold});
         fx.push({type:'tline',x:c.x-Math.cos(a)*1500,y:c.y-Math.sin(a)*1500,x2:c.x+Math.cos(a)*1500,y2:c.y+Math.sin(a)*1500,life:26,max:26,col:gold?'#ffe9a8':'#ff2e4a'});}
-      if(b.rifts.some(r=>r.gold))SFX.glint();else SFX.peril();
+      if(b.rifts.some(r=>r.gold))SFX.glint();else SFX.peril();if(GAMEDIFF===2)for(const r of b.rifts)(b.xRift=b.xRift||[]).push({t:-30});
       part(b.x,b.y-20,20,'#000000',2.5,24,2);b.hidden=true;
       {const r0=b.rifts[0];mGhost(b,'#000000');b.hidden=false;b.fly=true;b.sw=null;b.sheathed=true;
         b.x=clamp(r0.x-Math.cos(r0.a)*230-Math.sin(r0.a)*RO,30,WW-30);b.y=clamp(r0.y-Math.sin(r0.a)*230+Math.cos(r0.a)*RO+24,60,GROUND);b.face=Math.cos(r0.a)>=0?1:-1;part(b.x,b.y-24,14,'#ffffff',2,20);glint(b,false);
@@ -2045,9 +2055,9 @@ function kvMobsStep(b){kvGibsStep();kvShardsStep();if(b.kind==='katavina')kvQuak
   if(!on){if(KV_MOBS.length){for(const m of KV_MOBS)part(m.x,m.y,14,'#b070ff',2.5,28,1);KV_MOBS=[];}b.mobT=0;return;}
   if((b.phase|0)>=2&&!b.p3done){for(const m of KV_MOBS){m.vx=m.vy=0;m.kbx=m.kby=0;m.dash=null;m.bm=null;}b.zap=null;b.tri=null;return;} /* 第三階段開場動畫：怪物全部停止 */
   if(!b.mobInit&&p0){b.mobInit=true;b.mobT=0;b.shield=b.mshield=800;b.eliteT=900; /* 第一階段護盾血量 800 */}
-  if(!p0&&sp&&!b.p2Init){b.p2Init=true;b.mobT=0;b.eliteRe=[];b.e2T=0;for(const m of KV_MOBS)if(m.k==='e'){m.mhp=600*kvMpN();m.hp=Math.min(m.hp,m.mhp);}} /* 第二階段開始：場上剩餘菁英怪最大血量改成 600 */
+  if(!p0&&sp&&!b.p2Init){b.p2Init=true;b.mobT=0;b.eliteRe=[];b.e2T=0;if(GAMEDIFF===2){const c=pc();for(const p of [kvElitePos(-1),kvElitePos(1),{x:c.x,y:clamp(c.y-300,200,GROUND-200)}])kvMobSpawnElite(p.x,p.y);} /* 極難：第二階段一開始直接出三隻菁英怪，之後每 5 秒補 */for(const m of KV_MOBS)if(m.k==='e'){m.mhp=600*kvMpN();m.hp=Math.min(m.hp,m.mhp);}} /* 第二階段開始：場上剩餘菁英怪最大血量改成 600 */
   if(b.p3elite&&(b.phase|0)>=2){if(KV_MOBS.filter(m=>m.k==='e').length<3){if(++b.e2T>=2400){b.e2T=0;const c=pc(),o=KV_MOBS.find(m=>m.k==='e'),sd=o?(o.x<c.x?1:-1):(Math.random()<.5?-1:1);const p=kvElitePos(sd);kvMobSpawnElite(p.x,p.y,400);}}else b.e2T=0;} /* 第三階段（第一次星空後）：跟第二階段一樣補菁英怪，血量 400，不出小怪 */
-  if(!p0&&sp&&!kvCpAlive(b)){b.eliteRe=[];if(KV_MOBS.filter(m=>m.k==='e').length<eCap){if(++b.e2T>=2400){b.e2T=0;const c=pc(),o=KV_MOBS.find(m=>m.k==='e'),sd=o?(o.x<c.x?1:-1):(Math.random()<.5?-1:1);const p=kvElitePos(sd);kvMobSpawnElite(p.x,p.y);}}else b.e2T=0;} /* 第二階段：每 40 秒補一隻菁英怪（最多 3 隻） */
+  if(!p0&&sp&&(GAMEDIFF===2||!kvCpAlive(b))){b.eliteRe=[];if(KV_MOBS.filter(m=>m.k==='e').length<eCap){if(++b.e2T>=(GAMEDIFF===2?300:2400)){b.e2T=0;const c=pc(),o=KV_MOBS.find(m=>m.k==='e'),sd=o?(o.x<c.x?1:-1):(Math.random()<.5?-1:1);const p=kvElitePos(sd);kvMobSpawnElite(p.x,p.y);}}else b.e2T=0;} /* 第二階段：每 40 秒補一隻菁英怪（最多 3 隻） */
   if(sp){
   if(p0&&b.eliteT>0&&--b.eliteT===0){let p=kvElitePos(-1);kvMobSpawnElite(p.x,p.y);p=kvElitePos(1);kvMobSpawnElite(p.x,p.y);} /* 第一階段開始 15 秒後才出現兩隻菁英怪 */
   if(b.eliteRe&&b.eliteRe.length&&!kvCpAlive(b)){b.eliteRe=b.eliteRe.map(t=>t-1);for(const t of b.eliteRe)if(t<=0&&KV_MOBS.filter(m=>m.k==='e').length<eCap){ /* 菁英怪上限：第一階段 2 隻、第二階段 3 隻 */const c=pc(),o=KV_MOBS.find(m=>m.k==='e'),sd=o?(o.x<c.x?1:-1):(Math.random()<.5?-1:1);const p=kvElitePos(sd);kvMobSpawnElite(p.x,p.y);}b.eliteRe=b.eliteRe.filter(t=>t>0);} /* 第一階段兩隻菁英怪 */
@@ -2139,12 +2149,13 @@ function kvPaTick(b,a){a.t++;const pr=kvPrPos(b),c=pc();a.aim=Math.atan2(c.y-pr.
   else{const o=a.os[0];a.orbs=a.orbs||[];
     if(T===0)a.orbs.push(kvOrbNew(o,c.x,c.y)); /* 先射一顆 */
     if(T===50&&!a.e2){const sd=Math.cos(a.aim)>=0?1:-1;for(const k of [-1,1]){const px=-Math.sin(a.aim)*k,py=Math.cos(a.aim)*k;a.orbs.push(kvOrbNew(o,c.x+px*190,c.y+py*190));}} /* 再同時連射兩顆：玩家左右各一 */
+    if(T===100&&!a.e2&&GAMEDIFF===2&&b.tl&&b.tl.mode==='alone'){for(const k of [-1,1]){const px=-Math.sin(a.aim)*k,py=Math.cos(a.aim)*k;a.orbs.push(kvOrbNew(o,c.x+px*360,c.y+py*360));}} /* 極難皇女為主：再往更外側扔一次兩顆 */
     let alive=0;for(const q of a.orbs){if(!q.done){q.t++;alive++;const e=1-Math.pow(1-Math.min(1,q.t/KV_BOMB_T),3);q.x=lerp(q.x0,q.tx,e);q.y=lerp(q.y0,q.ty,e);q.tr.push([q.x,q.y]);if(q.tr.length>14)q.tr.shift();
         if(Math.hypot(c.x-q.x,c.y-q.y)<16)hurt(20);kvHitOthers(cc=>Math.hypot(cc.x-q.x,cc.y-q.y)<16,20);
         if(q.t>=KV_BOMB_T+10){q.done=true;q.bt=0;const r0=rnd(0,TAU);ringShot(q.x,q.y,22,2.6,r0,{r:6,col:'#efe6ff',shape:'kvwhite',dmg:20,life:420});ringShot(q.x,q.y,22,1.7,r0+TAU/44,{r:6,col:'#efe6ff',shape:'kvwhite',dmg:20,life:480}); /* 爆成 2 圈 */
           q.las=[0,1,2].map(k=>({x:q.x,y:q.y,a:rnd(0,TAU),t:0,w:4})); /* 3 道粗雷射，方向隨機 */addShake(6);SFX.boom();part(q.x,q.y,24,'#efe6ff',3,30,2);}}
       else{q.bt++;if(q.tr.length)q.tr.shift();for(const l of q.las){l.t++;if(l.t>=20&&l.t<30){const ex=l.x+Math.cos(l.a)*6000,ey=l.y+Math.sin(l.a)*6000;if(ptSeg(c.x,c.y,l.x,l.y,ex,ey)<15)hurt(26);kvHitOthers(cc=>ptSeg(cc.x,cc.y,l.x,l.y,ex,ey)<15,26);}}if(q.bt<=40)alive++;}}
-    if(T>50&&!alive)a.close=(a.close||0)+1;}
+    if(T>(GAMEDIFF===2&&b.tl&&b.tl.mode==='alone'?100:50)&&!alive)a.close=(a.close||0)+1;}
   return a.close>=16;}
 /* 彈反金色雷射：從玩家直線打回 Boss 核心（不穿透），暈眩條 +1/5 格；柱子還在時也有效 */
 function kvLaserParry(b,l){const c=pc(),pf=P.parryT>=8,co=kvCore(b);l.parried=true;P.parryHit=true;P.parryCD=5;P.parryT=0;P.iframes=Math.max(P.iframes,24);if(typeof stats!=='undefined')stats.parries++;
@@ -2501,7 +2512,7 @@ const BOSSES=[makeMirror,makeKatavina];
 function startFight(i){
   chat.all=[];chat.log=[];chat.sc=0; /* 新的一場：聊天記錄重新開始 */
   KV_DEBRIS=[];KV_PL.cd=0;KV_PL.fx=null;KV_PL.suck=null;KV_CP_WRECK.length=0;KV_CH_DROP.length=0;KV_GLASS=[];KV_FB=null;KV_MOBS=[];KV_GIBS=[];KV_SHARDS=[];KV_SPOTA=0;KV_SPK=[];KV_SPKA=0;KV_SPKW=0;KV_VIG=.10;KV_DARK=0;KV_PDK=0;KV_PBG=0;KV_MOBOL=0;KV_RK=kvRkNew();KV_CBF={sc:[],ch:[]};KV_CORPSE=[];KV_FALL=[];if(boss)boss.starFx=null;{const pal=BOSSES[i]===makeKatavina;WW=pal?2700:3600;WH=pal?2700:1200;GROUND=pal?2600:1100;PLATS.length=0;PLATS.push(...(pal?kvGenPlats():PLATS_ALL.map(q=>Object.assign({},q))));} /* 宮殿地圖：正方形 2700×2700 */ // 宮殿地圖：寬 2700（原 1800 的 1.5 倍）、自己的平台
-  D=DIFFS[diffI];bossSel=i;P=newPlayer();boss=BOSSES[i]();curCol=boss.col;if(GAMEDIFF===1){boss.mhp=boss.hp=Math.round(boss.mhp*1.5);boss.ghostHp=boss.hp;}
+  D=DIFFS[diffI];bossSel=i;P=newPlayer();boss=BOSSES[i]();curCol=boss.col;if(GAMEDIFF>=1){boss.mhp=boss.hp=Math.round(boss.mhp*(GAMEDIFF===2?2:1.5));boss.ghostHp=boss.hp;}if(GAMEDIFF===2)boss.xStart=boss.kind==='mirror'?2:boss.kind==='katavina'?1:null; /* 極難：血量 +100%；鏡中銀影直接第三階段、卡塔薇娜直接第二階段（血量不減） */XDQ=[];
   bullets=[];lasers=[];strikes=[];aoes=[];parts=[];fx=[];pops=[];ghosts=[];trail=[];weather=[];pqi=[];pshots=[];PWP=[];PWT=[];if(typeof CLONES!=='undefined'){CLONES=[];CLONE_POOL=[];}if(typeof SNH!=='undefined')SNH=[];crescents=[];scars=[];camK=0;execT=0;
   for(const c of snapPool())c.used=false;
   stats={time:0,parries:0,hits:0,pots:0,books:0,deaths:0};state='fight';introT=0;endT=0;paused=false;bgL=0;
@@ -2554,7 +2565,7 @@ function update(){
   updStrikes();updAoes();
   // 子彈
   const c=pc();
-  const KVB=!!(boss&&boss.kind==='katavina');for(const q of bullets){q.t++;if(!KVB)q.life--; /* 卡塔薇娜：彈幕不會自己消失，飛到地圖外才移除 */
+  xdFlush();const KVB=!!(boss&&boss.kind==='katavina');for(const q of bullets){q.t++;if(!KVB)q.life--; /* 卡塔薇娜：彈幕不會自己消失，飛到地圖外才移除 */
     if(q.orb){const o=q.orb;o.r+=o.vr;o.a+=o.w/Math.max(40,o.r);q.vx=o.cx+Math.cos(o.a)*o.r-q.x;q.vy=o.cy+Math.sin(o.a)*o.r-q.y;} /* 螺旋外擴 */
     if(q.turn){const a=Math.atan2(q.vy,q.vx)+q.turn,s=Math.hypot(q.vx,q.vy);q.vx=Math.cos(a)*s;q.vy=Math.sin(a)*s;}
     if(q.acc!==1){q.vx*=q.acc;q.vy*=q.acc;}
@@ -3094,11 +3105,11 @@ const KV_SWD=new Image();KV_SWD.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEU
 // ===== 第三階段：全屏飛劍（7 圈彈幕射完後）：8 個方向隨機 4 次，0.5 秒預警（先顯示劍、再變全白），超高速射出、帶殘影 =====
 const KV_SW_ON=false,KV_SW_SC=.42,KV_SW_WARN=30,KV_SW_GAP=45,KV_SW_V=34,KV_SW_SP=78,KV_SW_DIRS=[[0,-1],[0,1],[-1,0],[1,0],[1,-1],[1,1],[-1,1],[-1,-1]];
 let KV_SWD_W=null;function kvSwdWhite(){if(KV_SWD_W||!KV_SWD.complete)return KV_SWD_W;const c=mk(KV_SWD.width,KV_SWD.height),x=c.getContext('2d');x.drawImage(KV_SWD,0,0);x.globalCompositeOperation='source-in';x.fillStyle='#ffffff';x.fillRect(0,0,c.width,c.height);return KV_SWD_W=c;}
-function kvSwordStep(b){const s=b.swd;s.t++;
+function kvSwordStep(b){const s=b.swd;s.t++;const SWSP=GAMEDIFF===2?56:KV_SW_SP; /* 極難：飛劍間距縮小（更密） */
   if(s.n<6&&s.t===1+s.n*KV_SW_GAP){if(!s.order){s.order=[0,1,2,3,4,5,6,7];for(let j=7;j>0;j--){const r=Math.floor(Math.random()*(j+1));[s.order[j],s.order[r]]=[s.order[r],s.order[j]];}}const i=s.order[s.n];s.n++; /* 6 波方向互不重複（8 方向中取 6） */
     const [ux,uy]=KV_SW_DIRS[i],l=Math.hypot(ux,uy),dx=ux/l,dy=uy/l,px=-dy,py=dx,tg_=MP.on&&MP.realP&&P!==MP.realP,cx_=tg_?pc().x:VX0+VW_/2,cy_=tg_?pc().y:VY0+VH_/2, /* 多人：以仇恨目標為中心（不是房主的畫面） */
-      ext=VW_/2*Math.abs(dx)+VH_/2*Math.abs(dy),span=VW_/2*Math.abs(px)+VH_/2*Math.abs(py),cP=pc(),kp=(cP.x-cx_)*px+(cP.y-cy_)*py,o=(((kp+span+KV_SW_SP)%KV_SW_SP)+KV_SW_SP)%KV_SW_SP,sw=[]; /* 每一波都有一把對準玩家 */
-    for(let k=-span-KV_SW_SP+o;k<=span+KV_SW_SP;k+=KV_SW_SP)sw.push({x:cx_-dx*(ext-50)+px*k,y:cy_-dy*(ext-50)+py*k});
+      ext=VW_/2*Math.abs(dx)+VH_/2*Math.abs(dy),span=VW_/2*Math.abs(px)+VH_/2*Math.abs(py),cP=pc(),kp=(cP.x-cx_)*px+(cP.y-cy_)*py,o=(((kp+span+SWSP)%SWSP)+SWSP)%SWSP,sw=[]; /* 每一波都有一把對準玩家 */
+    for(let k=-span-SWSP+o;k<=span+SWSP;k+=SWSP)sw.push({x:cx_-dx*(ext-50)+px*k,y:cy_-dy*(ext-50)+py*k});
     s.waves.push({dx,dy,ang:Math.atan2(dy,dx)+Math.PI/2,t:0,d:0,max:ext*2+300,sw});SFX.glint&&SFX.glint();}
   for(const w of s.waves){w.t++;if(w.t===KV_SW_WARN){addShake(6);SFX.boom();}
     if(w.t>KV_SW_WARN){w.d+=KV_SW_V;
@@ -3195,7 +3206,7 @@ let KV_ARS=null;function kvArSheets(){if(KV_ARS)return KV_ARS;const im=KV_IMG.lo
   const mkS=(r,g_,b_)=>{const o=mk(w,h),ox=o.getContext('2d'),id=ox.createImageData(w,h),d=id.data;for(let i=0;i<src.length;i+=4){const al=src[i+3];if(!al)continue;const L=(src[i]+src[i+1]+src[i+2])/3;if(L>60){d[i]=r;d[i+1]=g_;d[i+2]=b_;d[i+3]=al;}else{d[i]=r*.4;d[i+1]=g_*.32;d[i+2]=b_*.5;d[i+3]=al*.3;}}ox.putImageData(id,0,0);return o;};KV_ARS=[mkS(255,255,255),mkS(214,184,255)];return KV_ARS;}
 function kvArFl(a,th){const t=a.t||0;return 60+22*Math.sin(th*17+t*.21)+14*Math.sin(th*29-t*.33+2)+9*Math.sin(th*43+t*.5);} /* 火焰往外延伸的長度（會跳動） */
 function kvArenaStep(b){const on=b.tl&&b.tl.bodyOff&&!b.dead;if(!b.ar){if(!on||b.tl.mode!=='alone')return;b.ar={h:KV_AR_MAX,cx:WW/2,cy:WH/2,t:0,parts:[]};}
-  const a=b.ar;a.t++;a.h+=((on?KV_AR_MIN:KV_AR_MAX+200)-a.h)*(on?.012:.03);if(!on&&a.h>KV_AR_MAX){b.ar=null;return;}
+  const a=b.ar;a.t++;a.h+=((on?KV_AR_MIN:KV_AR_MAX+200)-a.h)*(on?(GAMEDIFF===2?.024:.012):.03); /* 極難：火圈內縮速度兩倍 */if(!on&&a.h>KV_AR_MAX){b.ar=null;return;}
   if(on&&frameN%8===0&&!godMode&&state==='fight')kvHitOthers(cc=>kvArOut(a,cc.x,cc.y),5);if(P&&!P.dead&&on){const c=pc(),out=kvArOut(a,c.x,c.y);if(out&&frameN%8===0&&!godMode&&state==='fight'){P.hp-=5;pop(c.x,P.y-6,5,'#d8b8ff');part(c.x,c.y,3,'#c890ff',1.2,18,1);if(P.hp<=0){P.hp=0;P.iframes=0;P.dashT=0;P.dashI=0;hurt(1);}} /* 圈外灼燒 */
     a.burn=out;} /* 圈外身上冒火：改在 kvArFlamesTop 對每個玩家畫（每台都看得到） */
   for(let i=0;i<26;i++){const th=rnd(0,TAU),p=kvArPt(a,th,rnd(0,18)),x=p[0],y=p[1];if(x<VX0-60||x>VX0+VW_+60||y<VY0-60||y>VY0+VH_+60)continue;
@@ -3395,7 +3406,7 @@ function kvEyeDots(){const b=boss;if(!b||b.kind!=='katavina'||b.dead||b.hidden||
   for(const ex of [e[0],e[2]]){gg.globalAlpha=.8*ea;gg.drawImage(soft(9,'rgba(230,140,255,.95)'),ex-9,e[1]-9);}gg.globalAlpha=1;}
 function kvPilGlowDraw(){return; /* 擎天火柱：畫面下方紫色光效已移除 */if(KV_PBG<=0)return;const a=KV_PBG/120,w=cv.width,h=cv.height,gr=cx.createLinearGradient(0,h,0,h*.55);gr.addColorStop(0,`rgba(190,90,255,${.75*a})`);gr.addColorStop(.4,`rgba(150,60,240,${.3*a})`);gr.addColorStop(1,'rgba(120,40,220,0)');
   cx.save();cx.setTransform(1,0,0,1,0,0);cx.globalCompositeOperation='lighter';cx.fillStyle=gr;cx.fillRect(0,h*.55,w,h*.45);cx.restore();} /* 玩家離地太高時：畫面下方紫色光暈 */
-function kvPillarsStart(b,nw){b.pil=[];for(let w=0;w<(nw||5);w++){let first=true;for(let x=45+90*(w%2);x<=WW-30;x+=180){b.pil.push({x,d:w*120,t:-w*120,f:((x/120)*5)%12|0,first,w});first=false;}}SFX.glint&&SFX.glint();}
+function kvPillarsStart(b,nw){b.pil=[];for(let w=0;w<(nw||5);w++){let first=true;for(let x=45+(GAMEDIFF===2?75:90)*(w%2);x<=WW-30;x+=(GAMEDIFF===2?150:180)){b.pil.push({x,d:w*120,t:-w*120,f:((x/120)*5)%12|0,first,w});first=false;}}SFX.glint&&SFX.glint();}
 // 擎天火柱也當一般招式輪替使用：先飛到玩家畫面上方 1 秒，再放 5 波，放完才換下一招
 /* ===== 第三階段招式：核心吸入粒子＋扭曲＋大橫向十字光閃爍，射出 6 道（左右各 3）向內收的光束瞄準玩家最後位置 → 收成巨大光束（發抖、雙手舉起張開）往玩家方向旋轉一圈半，最後變慢淡出 ===== */
 const KV_CB_CH=150,KV_CB_ROT=720,KV_CB_FADE=0,KV_CB_W=34; /* 旋轉一圈半 12 秒 */
@@ -4042,7 +4053,7 @@ function mpHostMsg(c,d){if(!d)return;
   if(d.t==='hello'){if(MP.players.length>=6||(MP.started&&state!=='fight')){c.send({t:'full'});setTimeout(()=>{try{c.close();}catch(e){}},400);return;}
     const used=new Set(MP.players.map(p=>p.slot));let sl=0;while(used.has(sl))sl++;
     MP.conns[c.peer]=c;MP.players.push({id:c.peer,slot:sl,male:!!d.male});c.send({t:'welcome',id:c.peer,slot:sl,code:MP.code});mpBroadcastLobby();mpUI();
-    if(MP.started&&state==='fight'&&boss){const add=Math.round((boss.kind==='katavina'?25000:12000)*(GAMEDIFF===1?1.5:1));boss.mhp+=add;boss.hp+=add;boss.ghostHp=Math.max(boss.ghostHp||0,boss.hp);c.send({t:'start',n:MP.players.length,bi:MP.bi||0,df:GAMEDIFF,re:1});} /* 輸入房號中途加入：直接進戰鬥，Boss 多一份血量 */
+    if(MP.started&&state==='fight'&&boss){const add=Math.round((boss.kind==='katavina'?25000:12000)*(GAMEDIFF===2?2:GAMEDIFF===1?1.5:1));boss.mhp+=add;boss.hp+=add;boss.ghostHp=Math.max(boss.ghostHp||0,boss.hp);c.send({t:'start',n:MP.players.length,bi:MP.bi||0,df:GAMEDIFF,re:1});} /* 輸入房號中途加入：直接進戰鬥，Boss 多一份血量 */
     return;}
   if(d.t==='male'){const p=MP.players.find(q=>q.id===c.peer);if(p){p.male=!!d.male;mpBroadcastLobby();mpUI();}return;}
   if(d.t==='st'){MP.rs[c.peer]=d.s;MP.view[c.peer]=d.s;return;}
@@ -4102,7 +4113,7 @@ function mpLeave(){if(MP.host&&MP.on)mpSendAll({t:'back'});mpCloseAll();mpStatus
 // ---------- 開打 ----------
 function mpStartLocal(n,bi,re){if(!re)MP.graves=[];else for(const gr of MP.graves||[]){if(gr.oy!=null)gr.y=gr.oy;gr.vy=0;} /* 重新開始：墳墓回到原本的位置 */MP.spec=null;MP.rex=null;MP.wipeT=0;MP.allDeadT=0;MP.aggro={};MP.total={};MP.open=false;MP.fadeDone=false;MP.hitIds=new Set();MP.vshots=[];MP.robj={};MP.lastAi=-1;MP.tgt='h';startFight(bi||0);
   P.pal=mpPal(MP.me.slot);P.palSlot=MP.me.slot;P.male=MP.me.male;P.rage=0;
-  if(MP.host){const base=boss&&boss.kind==='katavina'?25000:12000,hp=Math.round(base*Math.max(1,n)*(GAMEDIFF===1?1.5:1)); /* 每多一位玩家，Boss 血量多一倍（基礎血量 × 人數；卡塔薇娜基礎 20000） */boss.mhp=boss.hp=boss.ghostHp=hp;}
+  if(MP.host){const base=boss&&boss.kind==='katavina'?25000:12000,hp=Math.round(base*Math.max(1,n)*(GAMEDIFF===2?2:GAMEDIFF===1?1.5:1)); /* 每多一位玩家，Boss 血量多一倍（基礎血量 × 人數；卡塔薇娜基礎 20000） */boss.mhp=boss.hp=boss.ghostHp=hp;}
   mpUI();}
 function mpPStats(){if(!MP.host)return MP.ps||{};const o={h:[stats.parries|0,stats.deaths|0]};for(const id in MP.rs){const r=MP.rs[id];if(r)o[id]=[r.pa|0,r.de|0];}return o;} /* 多人：每位玩家的格擋、死亡次數（房主彙整後廣播） */
 function mpPCmds(){if(!MP.host)return MP.pc||{};const o={h:winCmds()};for(const id in MP.rs){const r=MP.rs[id];if(r&&r.cm)o[id]=r.cm;}return o;} /* 多人：每位玩家用過的指令（房主彙整後廣播，所有人都看得到） */
@@ -4986,7 +4997,7 @@ function tmUI(){const r=document.getElementById('tmenu');if(!r)return;if(TM._lp!
   document.getElementById('tMvN').textContent=Math.round((music.on?musicVol:0)*100);document.getElementById('tSvN').textContent=Math.round(sfxVol*100);
   for(const b of r.querySelectorAll('[data-lang]'))b.classList.toggle('sel',b.dataset.lang===LANG||(LANG==='zhs'&&b.dataset.lang==='zh'));
   for(const b of r.querySelectorAll('#tBoss .d'))b.classList.toggle('sel',+b.dataset.d===GAMEDIFF);
-  const dn=document.getElementById('tDNote');if(dn)dn.textContent=tr(GAMEDIFF===1?'彈幕密集度 ×2、Boss 最大血量 +50%':'標準難度');}
+  const dn=document.getElementById('tDNote');if(dn)dn.textContent=tr(GAMEDIFF===2?'彈幕兩倍並加密、Boss 最大血量 +100%、直接從後段階段開始':GAMEDIFF===1?'彈幕密集度 ×2、Boss 最大血量 +50%':'標準難度');}
 (function(){const root=document.createElement('div');root.id='tmenu';root.innerHTML=`
 <style>
 #tmenu{position:fixed;inset:0;pointer-events:none;z-index:4;font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;user-select:none;-webkit-user-select:none}
@@ -5078,7 +5089,7 @@ html[lang=en] #tmenu .tlogo .en{display:none}html[lang=en] #tmenu .tlogo .zh{fon
   <div class="mctl"><span class="mvol"><i>♪</i><input id="tMusVol" type="range" min="0" max="100"></span><button class="b" id="tMusPlay">▶ 播放</button><button class="b" id="tMusStop">■ 停止</button><button class="b on" id="tMusLoop">⟳ 循環播放</button></div>
   <button class="back" id="tMusBack">返回</button></div>
 <div id="tBoss" class="lace"><h2>選擇 Boss</h2>
-  <div class="diff"><span>難度</span><button class="d" data-d="0">普通</button><button class="d" data-d="1">困難</button><button class="d dis" data-d="2" disabled>極難<small>開發中</small></button></div>
+  <div class="diff"><span>難度</span><button class="d" data-d="0">普通</button><button class="d" data-d="1">困難</button><button class="d" data-d="2">極難</button></div>
   <div class="dnote" id="tDNote"></div><div class="cards">
   <button class="card" data-b="0"><img id="tBossImg" alt=""><b>鏡中銀影</b><small>The Silver Reflection</small></button>
   <button class="card" data-b="1"><span class="q" style="gap:2px"><img id="tKvI0" alt="" style="width:auto;height:66px;filter:drop-shadow(0 0 6px rgba(192,106,255,.7))"><img id="tKvI1" alt="" style="width:auto;height:66px;filter:drop-shadow(0 0 6px rgba(192,106,255,.7))"></span><b>皇女卡塔薇娜</b><small>Princess Katavina</small></button>
