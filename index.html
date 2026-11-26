@@ -1319,7 +1319,7 @@ function makeMirror(){
     crouch:0,lean:0,float:0,swLA:1,bladeL:44,bladeW:34,dashing:false,dead:false,deathT:0,inv:0,hurtF:0,anim:0,trans:0,phaseAt:[.55,.2],
     rx:0,ry:0,handL:[0,0],shL:[2.5*PS,-31*PS],laNow:0,ghostHp:0,ghostT:0,hidden:false,
     onG:true,runPh:0,sheathed:true,sw:null,parryT:0,fly:false,flying:false,jumps:0,counter:0,punish:0,clones:[],weapon:'katana',gunLA:0,recoil:0,muzzleW:null};
-  b.mhp=b.hp=13500;b.ghostHp=b.hp;
+  b.mhp=b.hp=12000;b.ghostHp=b.hp;
   b.hair=makeChain(9,b.x,b.y-40);
   b.groundY=()=>b.y;
   const aimL=b=>{const c=pc(),a=Math.atan2(c.y-(b.y-24),c.x-b.x);b.face=Math.cos(a)>=0?1:-1;return Math.atan2(Math.sin(a),Math.cos(a)*b.face);};
